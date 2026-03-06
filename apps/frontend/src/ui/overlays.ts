@@ -22,20 +22,6 @@ export function flashDamage() {
   dmgTimeout = setTimeout(() => damageOverlay.classList.remove("active"), 300);
 }
 
-// Scope overlay (AWP)
-const scopeOverlay = document.createElement("div");
-scopeOverlay.id = "scope-overlay";
-scopeOverlay.style.cssText = "display:none;position:fixed;inset:0;border:3px solid rgba(0,0,0,0.8);border-radius:50%;background:radial-gradient(circle,transparent 30%,rgba(0,0,0,0.7) 70%);pointer-events:none;z-index:50;";
-document.body.appendChild(scopeOverlay);
-
-export function showScope() {
-  scopeOverlay.style.display = "block";
-}
-
-export function hideScope() {
-  scopeOverlay.style.display = "none";
-}
-
 // Invincibility overlay (local player)
 const invincibleOverlay = document.createElement("div");
 invincibleOverlay.id = "invincible-overlay";

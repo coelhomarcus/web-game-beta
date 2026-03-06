@@ -1,16 +1,3 @@
-// Scope overlay (AWP)
-const scopeOverlay = document.createElement("div");
-scopeOverlay.id = "scope-overlay";
-document.body.appendChild(scopeOverlay);
-
-export function showScope() {
-  scopeOverlay.classList.add("active");
-}
-
-export function hideScope() {
-  scopeOverlay.classList.remove("active");
-}
-
 // Hit marker
 const hitMarker = document.createElement("div");
 hitMarker.id = "hit-marker";

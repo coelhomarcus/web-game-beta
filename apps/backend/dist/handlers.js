@@ -6,6 +6,8 @@ const map_1 = require("./map");
 const physics_1 = require("./physics");
 const config_1 = require("./config");
 const players = {};
+// damageLog[victimId][attackerId] = total damage dealt
+const damageLog = {};
 function getPlayers() {
     return players;
 }
@@ -26,10 +28,22 @@ function scheduleRespawn(io, id) {
     }, config_1.RESPAWN_TIME);
 }
 function killPlayer(io, victimId, killerId) {
+    var _a;
     const target = players[victimId];
     target.hp = 0;
     target.isDead = true;
-    io.emit('player_killed', { victim: victimId, killer: killerId });
+    // Find the assist: highest damage dealer among non-killers
+    const log = (_a = damageLog[victimId]) !== null && _a !== void 0 ? _a : {};
+    let assistId;
+    let bestDmg = 0;
+    for (const [attackerId, dmg] of Object.entries(log)) {
+        if (attackerId !== killerId && dmg > bestDmg) {
+            bestDmg = dmg;
+            assistId = attackerId;
+        }
+    }
+    delete damageLog[victimId];
+    io.emit('player_killed', { victim: victimId, killer: killerId, assist: assistId });
     scheduleRespawn(io, victimId);
 }
 function registerHandlers(io, socket) {
@@ -74,6 +88,7 @@ function registerHandlers(io, socket) {
         socket.broadcast.emit('grenade_launched', data);
     });
     socket.on('grenade_throw', (data) => {
+        var _a;
         const ep = data.explosionPos;
         io.emit('grenade_explode', { position: ep, throwerId: socket.id });
         for (const [id, target] of Object.entries(players)) {
@@ -88,6 +103,10 @@ function registerHandlers(io, socket) {
             const t = 1 - dist / config_1.BLAST_RADIUS;
             const dmg = Math.round(config_1.MIN_DAMAGE + t * (config_1.MAX_DAMAGE - config_1.MIN_DAMAGE));
             target.hp = Math.max(0, target.hp - dmg);
+            // Track damage for assist
+            if (!damageLog[id])
+                damageLog[id] = {};
+            damageLog[id][socket.id] = ((_a = damageLog[id][socket.id]) !== null && _a !== void 0 ? _a : 0) + dmg;
             if (target.hp <= 0) {
                 killPlayer(io, id, socket.id);
             }
@@ -101,6 +120,10 @@ function registerHandlers(io, socket) {
         const target = players[data.targetId];
         if (target && !target.isDead && !target.isInvincible) {
             target.hp -= config_1.BULLET_DAMAGE;
+            // Track damage for assist
+            if (!damageLog[data.targetId])
+                damageLog[data.targetId] = {};
+            damageLog[data.targetId][socket.id] = ((_a = damageLog[data.targetId][socket.id]) !== null && _a !== void 0 ? _a : 0) + config_1.BULLET_DAMAGE;
             if (target.hp <= 0) {
                 killPlayer(io, target.id, socket.id);
             }
@@ -124,6 +147,11 @@ function registerHandlers(io, socket) {
     socket.on('disconnect', () => {
         console.log(`[Socket] Player disconnected: ${socket.id}`);
         delete players[socket.id];
+        // Clean up damage log entries for/by this player
+        delete damageLog[socket.id];
+        for (const victimId in damageLog) {
+            delete damageLog[victimId][socket.id];
+        }
         io.emit('player_left', socket.id);
     });
 }

@@ -1,3 +1,16 @@
+// Scope overlay (AWP)
+const scopeOverlay = document.createElement("div");
+scopeOverlay.id = "scope-overlay";
+document.body.appendChild(scopeOverlay);
+
+export function showScope() {
+  scopeOverlay.classList.add("active");
+}
+
+export function hideScope() {
+  scopeOverlay.classList.remove("active");
+}
+
 // Hit marker
 const hitMarker = document.createElement("div");
 hitMarker.id = "hit-marker";
@@ -56,10 +69,14 @@ export function showKillFeedEntry(
   killerName: string,
   victimName: string,
   isMyKill: boolean,
+  assistName?: string,
 ) {
   const el = document.createElement("div");
   el.className = "kill-feed-item" + (isMyKill ? " my-kill" : "");
-  el.innerHTML = `<span class="kf-killer">${killerName}</span> <span class="kf-icon">☠</span> <span class="kf-victim">${victimName}</span>`;
+  const killersPart = assistName
+    ? `<span class="kf-killer">${killerName}</span> <span class="kf-plus">+</span> <span class="kf-assist">${assistName}</span>`
+    : `<span class="kf-killer">${killerName}</span>`;
+  el.innerHTML = `${killersPart} <span class="kf-icon">☠</span> <span class="kf-victim">${victimName}</span>`;
   killFeed.appendChild(el);
   setTimeout(() => {
     el.style.opacity = "0";

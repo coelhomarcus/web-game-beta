@@ -6,6 +6,9 @@ import { MAX_PLAYERS, BLAST_RADIUS, MAX_DAMAGE, MIN_DAMAGE, BULLET_DAMAGE, RESPA
 
 const players: Record<string, PlayerState> = {};
 
+// damageLog[victimId][attackerId] = total damage dealt
+const damageLog: Record<string, Record<string, number>> = {};
+
 export function getPlayers(): Record<string, PlayerState> {
     return players;
 }
@@ -31,7 +34,20 @@ function killPlayer(io: Server, victimId: string, killerId: string) {
     const target = players[victimId];
     target.hp = 0;
     target.isDead = true;
-    io.emit('player_killed', { victim: victimId, killer: killerId });
+
+    // Find the assist: highest damage dealer among non-killers
+    const log = damageLog[victimId] ?? {};
+    let assistId: string | undefined;
+    let bestDmg = 0;
+    for (const [attackerId, dmg] of Object.entries(log)) {
+        if (attackerId !== killerId && dmg > bestDmg) {
+            bestDmg = dmg;
+            assistId = attackerId;
+        }
+    }
+    delete damageLog[victimId];
+
+    io.emit('player_killed', { victim: victimId, killer: killerId, assist: assistId });
     scheduleRespawn(io, victimId);
 }
 
@@ -99,6 +115,10 @@ export function registerHandlers(io: Server, socket: Socket) {
             const dmg = Math.round(MIN_DAMAGE + t * (MAX_DAMAGE - MIN_DAMAGE));
             target.hp = Math.max(0, target.hp - dmg);
 
+            // Track damage for assist
+            if (!damageLog[id]) damageLog[id] = {};
+            damageLog[id][socket.id] = (damageLog[id][socket.id] ?? 0) + dmg;
+
             if (target.hp <= 0) {
                 killPlayer(io, id, socket.id);
             } else {
@@ -111,6 +131,10 @@ export function registerHandlers(io: Server, socket: Socket) {
         const target = players[data.targetId];
         if (target && !target.isDead && !target.isInvincible) {
             target.hp -= BULLET_DAMAGE;
+
+            // Track damage for assist
+            if (!damageLog[data.targetId]) damageLog[data.targetId] = {};
+            damageLog[data.targetId][socket.id] = (damageLog[data.targetId][socket.id] ?? 0) + BULLET_DAMAGE;
 
             if (target.hp <= 0) {
                 killPlayer(io, target.id, socket.id);
@@ -136,6 +160,11 @@ export function registerHandlers(io: Server, socket: Socket) {
     socket.on('disconnect', () => {
         console.log(`[Socket] Player disconnected: ${socket.id}`);
         delete players[socket.id];
+        // Clean up damage log entries for/by this player
+        delete damageLog[socket.id];
+        for (const victimId in damageLog) {
+            delete damageLog[victimId][socket.id];
+        }
         io.emit('player_left', socket.id);
     });
 }

@@ -17,4 +17,5 @@ export const GRENADE_GRAVITY = -18;
 export const GRENADE_THROW_SPD = 14;
 export const GRENADE_THROW_UP = 6;
 
+export const MAG_SIZE = 20; // Default (AR) mag size for initial HUD display
 export const INVINCIBLE_TIME = 3000;

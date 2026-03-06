@@ -658,6 +658,63 @@ body.scoped #crosshair {
   opacity: 1;
 }
 
+/* ── Scope overlay ──────────────────────────────────────────────────────────── */
+#scope-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  background: radial-gradient(
+    circle 36vmin at center,
+    transparent 0%,
+    transparent 100%
+  );
+  box-shadow: inset 0 0 0 100vmax rgba(0, 0, 0, 0.92);
+}
+
+#scope-overlay.active {
+  display: block;
+}
+
+/* Scope crosshair */
+#scope-overlay::before,
+#scope-overlay::after {
+  content: "";
+  position: absolute;
+  background: rgba(180, 220, 180, 0.65);
+}
+
+#scope-overlay::before {
+  top: 50%;
+  left: calc(50% - 36vmin);
+  width: 72vmin;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+#scope-overlay::after {
+  left: 50%;
+  top: calc(50% - 36vmin);
+  height: 72vmin;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+/* ── Weapon name in HUD ─────────────────────────────────────────────────────── */
+#hud-weapon-name {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: #b0bec5;
+  text-transform: uppercase;
+  margin-right: 6px;
+}
+
+#hud-ammo[data-weapon="awp"] #hud-weapon-name {
+  color: #80cbc4;
+}
+
 /* ── Kill feed ──────────────────────────────────────────────────────────────── */
 #kill-feed {
   position: fixed;
@@ -714,6 +771,22 @@ body.scoped #crosshair {
 .kf-victim {
   color: #78909c;
   font-weight: 700;
+}
+
+.kf-assist {
+  color: #1565c0;
+  font-weight: 900;
+  opacity: 0.75;
+}
+
+.kf-plus {
+  color: #9e9e9e;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.kill-feed-item.my-kill .kf-assist {
+  color: #e65100;
 }
 
 /* ── Chat ──────────────────────────────────────────────────────────────────── */

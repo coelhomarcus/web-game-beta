@@ -4,55 +4,150 @@ import { scene, camera } from "../scene/setup";
 import { mapBlocks } from "../scene/map";
 import { otherPlayers } from "../player/PlayerModel";
 import { socket } from "../network/socket";
-import { playShootSound, playReloadSound } from "./audio";
+import { playShootSound, playAwpSound, playReloadSound } from "./audio";
 import { showHitMarker } from "../ui/overlays";
-import { updateHudAmmo } from "../ui/hud";
+import { updateHudAmmo, updateHudWeapon } from "../ui/hud";
+import { showScope, hideScope } from "../ui/overlays";
 
-// ─── Ammo ─────────────────────────────────────────────────────────────────────
-export const MAG_SIZE = 20;
-export const RELOAD_TIME = 2.0; // seconds
+// ─── Weapon definitions ───────────────────────────────────────────────────────
+export interface WeaponDef {
+  id: "ar" | "awp";
+  name: string;
+  label: string;
+  magSize: number;
+  reloadTime: number; // seconds
+  fireRate: number;   // min seconds between shots (0 = no limit)
+  damage: number;     // hp damage per hit (100 = one-shot kill)
+  bulletColor: number;
+  bulletSpeed: number;
+  bulletMaxLife: number;
+}
 
-let ammo = MAG_SIZE;
+export const WEAPONS: Record<string, WeaponDef> = {
+  ar: {
+    id: "ar",
+    name: "M4A1",
+    label: "1",
+    magSize: 20,
+    reloadTime: 2.0,
+    fireRate: 0,
+    damage: 25,
+    bulletColor: 0xffe000,
+    bulletSpeed: BULLET_SPEED,
+    bulletMaxLife: BULLET_MAX_LIFETIME,
+  },
+  awp: {
+    id: "awp",
+    name: "AWP",
+    label: "2",
+    magSize: 5,
+    reloadTime: 3.2,
+    fireRate: 1.1, // bolt-action delay
+    damage: 100,   // one-hit kill
+    bulletColor: 0x00ffff,
+    bulletSpeed: 120,
+    bulletMaxLife: 3.0,
+  },
+};
+
+// ─── Weapon state ─────────────────────────────────────────────────────────────
+let currentWeaponId: "ar" | "awp" = "ar";
+let ammo = WEAPONS.ar.magSize;
 let isReloading = false;
 let reloadTimer = 0;
+let fireCooldown = 0;
 
+// Scope state (AWP only)
+let isScoped = false;
+
+export function getCurrentWeapon(): WeaponDef { return WEAPONS[currentWeaponId]; }
 export function getAmmo() { return ammo; }
 export function getIsReloading() { return isReloading; }
+export function getIsScoped() { return isScoped; }
 
-/** Begin a reload if not already reloading and magazine is not full. */
+// ─── Switch weapon ────────────────────────────────────────────────────────────
+export function switchWeapon(id: "ar" | "awp") {
+  if (id === currentWeaponId) return;
+  if (isReloading) return; // Don't switch mid-reload
+  // Exit scope if switching away from AWP
+  if (isScoped) exitScope();
+  currentWeaponId = id;
+  ammo = WEAPONS[id].magSize;
+  isReloading = false;
+  reloadTimer = 0;
+  fireCooldown = 0;
+  updateHudAmmo(ammo, false);
+  updateHudWeapon(WEAPONS[id]);
+}
+
+// ─── Scope (AWP right-click) ──────────────────────────────────────────────────
+export function enterScope() {
+  if (currentWeaponId !== "awp" || isScoped) return;
+  isScoped = true;
+  showScope();
+  camera.fov = 20;
+  camera.updateProjectionMatrix();
+}
+
+export function exitScope() {
+  if (!isScoped) return;
+  isScoped = false;
+  hideScope();
+  camera.fov = 75;
+  camera.updateProjectionMatrix();
+}
+
+// ─── Reload ───────────────────────────────────────────────────────────────────
 export function startReload() {
-  if (isReloading || ammo === MAG_SIZE) return;
+  const w = getCurrentWeapon();
+  if (isReloading || ammo === w.magSize) return;
   isReloading = true;
-  reloadTimer = RELOAD_TIME;
+  reloadTimer = w.reloadTime;
+  if (isScoped) exitScope();
   playReloadSound();
   updateHudAmmo(ammo, true);
 }
 
-/** Called every frame with delta. Handles reload countdown. */
 export function updateAmmo(delta: number) {
+  if (fireCooldown > 0) fireCooldown = Math.max(0, fireCooldown - delta);
   if (!isReloading) return;
   reloadTimer -= delta;
   if (reloadTimer <= 0) {
     isReloading = false;
-    ammo = MAG_SIZE;
+    ammo = getCurrentWeapon().magSize;
     updateHudAmmo(ammo, false);
   }
 }
 
 // ─── Bullets ──────────────────────────────────────────────────────────────────
-const activeBullets: {
+interface ActiveBullet {
   mesh: THREE.Mesh;
   dir: THREE.Vector3;
   lifeTime: number;
-}[] = [];
-const bulletGeo = new THREE.SphereGeometry(0.06, 6, 6);
-const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffe000 });
+  speed: number;
+  maxLife: number;
+}
 
-export function createVisualBullet(origin: THREE.Vector3, dir: THREE.Vector3) {
-  const mesh = new THREE.Mesh(bulletGeo, bulletMat);
+const activeBullets: ActiveBullet[] = [];
+const bulletGeo = new THREE.SphereGeometry(0.06, 6, 6);
+const matCache: Record<number, THREE.MeshBasicMaterial> = {};
+
+function getBulletMat(color: number): THREE.MeshBasicMaterial {
+  if (!matCache[color]) matCache[color] = new THREE.MeshBasicMaterial({ color });
+  return matCache[color];
+}
+
+export function createVisualBullet(
+  origin: THREE.Vector3,
+  dir: THREE.Vector3,
+  color = 0xffe000,
+  speed = BULLET_SPEED,
+  maxLife = BULLET_MAX_LIFETIME,
+) {
+  const mesh = new THREE.Mesh(bulletGeo, getBulletMat(color));
   mesh.position.copy(origin);
   scene.add(mesh);
-  activeBullets.push({ mesh, dir: dir.clone().normalize(), lifeTime: 0 });
+  activeBullets.push({ mesh, dir: dir.clone().normalize(), lifeTime: 0, speed, maxLife });
 }
 
 const raycaster = new THREE.Raycaster();
@@ -61,10 +156,7 @@ raycaster.near = 0.1;
 function findPlayerGroup(o: THREE.Object3D): THREE.Group | null {
   let cur: THREE.Object3D | null = o;
   while (cur) {
-    if (
-      cur instanceof THREE.Group &&
-      Object.values(otherPlayers).includes(cur as THREE.Group)
-    )
+    if (cur instanceof THREE.Group && Object.values(otherPlayers).includes(cur as THREE.Group))
       return cur;
     cur = cur.parent;
   }
@@ -73,27 +165,29 @@ function findPlayerGroup(o: THREE.Object3D): THREE.Group | null {
 
 export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
   if (!controls.isLocked || isDead) return;
-
-  // Block shot if reloading or out of ammo
   if (isReloading || ammo <= 0) {
     if (ammo <= 0 && !isReloading) startReload();
     return;
   }
+  const w = getCurrentWeapon();
+  if (fireCooldown > 0) return; // Bolt-action / fire rate limiter
 
-  playShootSound();
-
-  // Consume ammo
+  // Consume ammo & set cooldown
   ammo--;
+  fireCooldown = w.fireRate;
   updateHudAmmo(ammo, false);
-
-  // Auto-reload when magazine runs dry
   if (ammo === 0) startReload();
 
+  // AWP: exit scope on shoot
+  if (currentWeaponId === "awp") {
+    playAwpSound();
+    if (isScoped) exitScope();
+  } else {
+    playShootSound();
+  }
+
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const allTargets = [
-    ...Object.values(otherPlayers),
-    ...mapBlocks,
-  ];
+  const allTargets = [...Object.values(otherPlayers), ...mapBlocks];
   const hits = raycaster.intersectObjects(allTargets, true);
   const firstPlayerHit = hits.find((h) => findPlayerGroup(h.object) !== null);
   if (firstPlayerHit) {
@@ -101,24 +195,24 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
     const playerBlocked = wallHit && wallHit.distance < firstPlayerHit.distance;
     if (!playerBlocked) {
       const grp = findPlayerGroup(firstPlayerHit.object)!;
-      const tid = Object.keys(otherPlayers).find(
-        (id) => otherPlayers[id] === grp,
-      );
+      const tid = Object.keys(otherPlayers).find((id) => otherPlayers[id] === grp);
       if (tid) {
-        socket.emit("hit_player", { targetId: tid });
+        socket.emit("hit_player", { targetId: tid, damage: w.damage });
         showHitMarker();
       }
     }
   }
+
   const orig = new THREE.Vector3();
   camera.getWorldPosition(orig);
   orig.y -= 0.1;
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
-  createVisualBullet(orig, dir);
+  createVisualBullet(orig, dir, w.bulletColor, w.bulletSpeed, w.bulletMaxLife);
   socket.emit("shoot", {
     origin: { x: orig.x, y: orig.y, z: orig.z },
     direction: { x: dir.x, y: dir.y, z: dir.z },
+    color: w.bulletColor,
   });
 }
 
@@ -141,18 +235,16 @@ function bulletHitsBlock(pos: THREE.Vector3): boolean {
 export function updateBullets(delta: number) {
   for (let i = activeBullets.length - 1; i >= 0; i--) {
     const b = activeBullets[i];
-    const step = BULLET_SPEED * delta;
+    const step = b.speed * delta;
     const nextPos = b.mesh.position.clone().addScaledVector(b.dir, step);
-
     if (bulletHitsBlock(nextPos)) {
       scene.remove(b.mesh);
       activeBullets.splice(i, 1);
       continue;
     }
-
     b.mesh.position.copy(nextPos);
     b.lifeTime += delta;
-    if (b.lifeTime > BULLET_MAX_LIFETIME || b.mesh.position.y <= 0) {
+    if (b.lifeTime > b.maxLife || b.mesh.position.y <= 0) {
       scene.remove(b.mesh);
       activeBullets.splice(i, 1);
     }

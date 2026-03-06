@@ -5,6 +5,7 @@ import { controls, getIsDead } from "./systems/input";
 import { updatePhysics } from "./systems/physics";
 import { updateBullets, updateAmmo } from "./systems/shooting";
 import { updateGrenade } from "./systems/grenade";
+import { updateMinimap } from "./ui/minimap";
 import { getMyId } from "./network/events";
 
 let prevTime = performance.now();
@@ -34,5 +35,6 @@ export function animate() {
   updateAmmo(delta);
   updateGrenade(delta);
 
+  updateMinimap();
   renderer.render(scene, camera);
 }

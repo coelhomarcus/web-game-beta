@@ -42,10 +42,17 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
   if (!controls.isLocked || isDead) return;
   playShootSound();
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const hits = raycaster.intersectObjects(Object.values(otherPlayers), true);
-  if (hits.length > 0) {
-    const grp = findPlayerGroup(hits[0].object);
-    if (grp) {
+  const allTargets = [
+    ...Object.values(otherPlayers),
+    ...mapBlocks,
+  ];
+  const hits = raycaster.intersectObjects(allTargets, true);
+  const firstPlayerHit = hits.find((h) => findPlayerGroup(h.object) !== null);
+  if (firstPlayerHit) {
+    const wallHit = hits.find((h) => mapBlocks.includes(h.object as THREE.Mesh));
+    const playerBlocked = wallHit && wallHit.distance < firstPlayerHit.distance;
+    if (!playerBlocked) {
+      const grp = findPlayerGroup(firstPlayerHit.object)!;
       const tid = Object.keys(otherPlayers).find(
         (id) => otherPlayers[id] === grp,
       );

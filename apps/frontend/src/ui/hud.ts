@@ -1,4 +1,4 @@
-import { MAG_SIZE } from "../systems/shooting";
+import { getCurrentWeapon, type WeaponDef } from "../systems/shooting";
 
 const hud = document.createElement("div");
 hud.id = "hud";
@@ -11,7 +11,7 @@ hud.innerHTML = `
   <div id="hud-kills"><span id="hud-kills-value">0</span></div>
   <div id="hud-grenade">💣 <span id="hud-grenade-label">Q</span><div id="hud-grenade-cd"></div></div>
   <div id="hud-ammo">
-    🔫 <span id="hud-ammo-current">${MAG_SIZE}</span><span id="hud-ammo-sep">/</span><span id="hud-ammo-reserve">∞</span>
+    🔫 <span id="hud-ammo-current">20</span><span id="hud-ammo-sep">/</span><span id="hud-ammo-reserve">∞</span>
     <div id="hud-ammo-reload"></div>
   </div>`;
 document.body.appendChild(hud);
@@ -47,6 +47,10 @@ export function updateHudAmmo(current: number, reloading: boolean) {
   // Flash red when low ammo (≤5), normal otherwise
   hudAmmoEl.classList.toggle("low-ammo", !reloading && current <= 5 && current > 0);
   hudAmmoEl.classList.toggle("empty-ammo", !reloading && current === 0);
+}
+
+export function updateHudWeapon(w: WeaponDef) {
+  hudAmmoCurrent.textContent = String(w.magSize);
 }
 
 updateHudHp(100);

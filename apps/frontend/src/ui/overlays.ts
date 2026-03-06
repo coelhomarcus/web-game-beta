@@ -25,12 +25,7 @@ export function flashDamage() {
 // Scope overlay (AWP)
 const scopeOverlay = document.createElement("div");
 scopeOverlay.id = "scope-overlay";
-<<<<<<< HEAD
-scopeOverlay.style.cssText =
-  "display:none;position:fixed;inset:0;border:3px solid rgba(0,0,0,0.8);border-radius:50%;background:radial-gradient(circle,transparent 30%,rgba(0,0,0,0.7) 70%);pointer-events:none;z-index:50;";
-=======
 scopeOverlay.style.cssText = "display:none;position:fixed;inset:0;border:3px solid rgba(0,0,0,0.8);border-radius:50%;background:radial-gradient(circle,transparent 30%,rgba(0,0,0,0.7) 70%);pointer-events:none;z-index:50;";
->>>>>>> 3ded118812580686291937d3b6063d6c2f7354da
 document.body.appendChild(scopeOverlay);
 
 export function showScope() {

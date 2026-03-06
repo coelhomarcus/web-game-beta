@@ -1,4 +1,4 @@
-import { getCurrentWeapon, type WeaponDef } from "../systems/shooting";
+import { type WeaponDef } from "../systems/shooting";
 
 const hud = document.createElement("div");
 hud.id = "hud";
@@ -49,13 +49,8 @@ export function updateHudAmmo(current: number, reloading: boolean) {
   hudAmmoEl.classList.toggle("empty-ammo", !reloading && current === 0);
 }
 
-<<<<<<< HEAD
-export function updateHudWeapon(_w: { magSize: number }) {
-  hudAmmoCurrent.textContent = String(_w.magSize);
-=======
 export function updateHudWeapon(w: WeaponDef) {
   hudAmmoCurrent.textContent = String(w.magSize);
->>>>>>> 3ded118812580686291937d3b6063d6c2f7354da
 }
 
 updateHudHp(100);

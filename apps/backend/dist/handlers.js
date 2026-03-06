@@ -90,9 +90,11 @@ function registerHandlers(io, socket) {
         }
     });
     socket.on('hit_player', (data) => {
+        var _a;
         const target = players[data.targetId];
         if (target && !target.isDead) {
-            target.hp -= config_1.BULLET_DAMAGE;
+            const dmg = Math.min((_a = data.damage) !== null && _a !== void 0 ? _a : config_1.BULLET_DAMAGE, config_1.MAX_DAMAGE);
+            target.hp -= dmg;
             if (target.hp <= 0) {
                 killPlayer(io, target.id, socket.id);
             }

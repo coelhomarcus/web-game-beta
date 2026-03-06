@@ -33,6 +33,39 @@ export function makeWeapon(firstPerson: boolean): THREE.Group {
   return g;
 }
 
+export function makeAwpModel(firstPerson: boolean): THREE.Group {
+  const g = new THREE.Group();
+  const m = (c: number, r = 0.5) =>
+    new THREE.MeshStandardMaterial({ color: c, roughness: r });
+  // Long barrel
+  const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 1.1), m(0x222222));
+  barrel.position.set(0, 0.02, -0.35);
+  g.add(barrel);
+  // Scope body
+  const scope = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.3), m(0x111111, 0.9));
+  scope.position.set(0, 0.1, -0.1);
+  g.add(scope);
+  // Scope lens (cyan tint)
+  const lens = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.045, 0.05, 12),
+    new THREE.MeshStandardMaterial({ color: 0x00ffff, roughness: 0.1, metalness: 0.5 }),
+  );
+  lens.rotation.x = Math.PI / 2;
+  lens.position.set(0, 0.1, -0.26);
+  g.add(lens);
+  // Stock / body
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.14, 0.5), m(0x8b5a2b, 0.9));
+  body.position.set(0, -0.03, 0.2);
+  g.add(body);
+  // Grip
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.22, 0.09), m(0x222222, 0.9));
+  grip.position.set(0, -0.18, 0.1);
+  grip.rotation.x = -Math.PI / 10;
+  g.add(grip);
+  if (firstPerson) g.position.set(0.3, -0.32, -0.5);
+  return g;
+}
+
 export function addOtherPlayer(player: { id: string; name: string; color: string; position: { x: number; y: number; z: number }; isDead: boolean }) {
   const grp = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ color: player.color });

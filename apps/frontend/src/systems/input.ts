@@ -4,7 +4,7 @@ import {
   setMoveForward, setMoveBackward, setMoveLeft, setMoveRight,
   setWantsJump, isOnGround,
 } from "./physics";
-import { handleShoot, startReload } from "./shooting";
+import { handleShoot, startReload, switchWeapon, enterScope, exitScope } from "./shooting";
 import { throwGrenade } from "./grenade";
 import { renderScoreboard } from "../ui/scoreboard";
 import { isChatOpen, openChat } from "../ui/chat";
@@ -23,11 +23,13 @@ const startScreen = document.getElementById("start-screen")!;
 const scoreboard = document.getElementById("scoreboard")!;
 
 controls.addEventListener("unlock", () => {
-  // Clear movement so player doesn't keep walking
+  // Clear movement so player doesn't keep walking (upstream)
   setMoveForward(false);
   setMoveBackward(false);
   setMoveLeft(false);
   setMoveRight(false);
+  // Exit scope when ESC is pressed (AWP)
+  exitScope();
 });
 
 const SUPPRESS_KEYS = new Set([
@@ -54,6 +56,8 @@ window.addEventListener("keydown", (e) => {
     case "Space": if (isOnGround) setWantsJump(true); break;
     case "KeyQ": throwGrenade(controls, isDead); break;
     case "KeyR": startReload(); break;
+    case "Digit1": switchWeapon("ar"); break;
+    case "Digit2": switchWeapon("awp"); break;
     case "Tab":
       e.preventDefault();
       renderScoreboard();
@@ -77,13 +81,26 @@ window.addEventListener("keyup", (e) => {
 });
 
 window.addEventListener("mousedown", (e) => {
-  if (e.button !== 0 || isChatOpen()) return;
-  if (!controls.isLocked && gameStarted && !isDead) {
-    controls.lock();
-    return;
+  if (isChatOpen()) return;
+  if (e.button === 0) {
+    // Left click: re-lock if unlocked, or shoot
+    if (!controls.isLocked && gameStarted && !isDead) {
+      controls.lock();
+      return;
+    }
+    handleShoot(isDead, controls);
+  } else if (e.button === 2) {
+    // Right-click: scope in with AWP
+    if (controls.isLocked && !isDead) enterScope();
   }
-  handleShoot(isDead, controls);
 });
+
+window.addEventListener("mouseup", (e) => {
+  if (e.button === 2) exitScope();
+});
+
+// Prevent context menu on right-click
+window.addEventListener("contextmenu", (e) => e.preventDefault());
 
 export function lockAndStart() {
   gameStarted = true;

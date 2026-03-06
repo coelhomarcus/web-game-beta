@@ -22,20 +22,6 @@ export function flashDamage() {
   dmgTimeout = setTimeout(() => damageOverlay.classList.remove("active"), 300);
 }
 
-// Scope overlay (AWP)
-const scopeOverlay = document.createElement("div");
-scopeOverlay.id = "scope-overlay";
-scopeOverlay.style.cssText = "display:none;position:fixed;inset:0;border:3px solid rgba(0,0,0,0.8);border-radius:50%;background:radial-gradient(circle,transparent 30%,rgba(0,0,0,0.7) 70%);pointer-events:none;z-index:50;";
-document.body.appendChild(scopeOverlay);
-
-export function showScope() {
-  scopeOverlay.style.display = "block";
-}
-
-export function hideScope() {
-  scopeOverlay.style.display = "none";
-}
-
 // Kill feed
 const killFeed = document.createElement("div");
 killFeed.id = "kill-feed";
@@ -55,3 +41,21 @@ export function showKillFeedEntry(
     setTimeout(() => el.remove(), 500);
   }, 2500);
 }
+
+// AWP scope overlay
+const scopeOverlay = document.createElement("div");
+scopeOverlay.id = "scope-overlay";
+scopeOverlay.innerHTML = `
+  <div class="scope-ring"></div>
+  <div class="scope-cross scope-h"></div>
+  <div class="scope-cross scope-v"></div>
+  <div class="scope-lens-shade scope-top"></div>
+  <div class="scope-lens-shade scope-bottom"></div>
+  <div class="scope-lens-shade scope-left"></div>
+  <div class="scope-lens-shade scope-right"></div>
+`;
+scopeOverlay.style.display = "none";
+document.body.appendChild(scopeOverlay);
+
+export function showScope() { scopeOverlay.style.display = "flex"; }
+export function hideScope() { scopeOverlay.style.display = "none"; }

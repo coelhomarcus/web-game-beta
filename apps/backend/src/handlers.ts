@@ -100,10 +100,11 @@ export function registerHandlers(io: Server, socket: Socket) {
         }
     });
 
-    socket.on('hit_player', (data: { targetId: string }) => {
+    socket.on('hit_player', (data: { targetId: string; damage?: number }) => {
         const target = players[data.targetId];
         if (target && !target.isDead) {
-            target.hp -= BULLET_DAMAGE;
+            const dmg = Math.min(data.damage ?? BULLET_DAMAGE, MAX_DAMAGE);
+            target.hp -= dmg;
 
             if (target.hp <= 0) {
                 killPlayer(io, target.id, socket.id);

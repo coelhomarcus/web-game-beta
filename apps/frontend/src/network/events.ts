@@ -42,6 +42,7 @@ export function setupSocketEvents() {
           name: playerName || me.name,
           kills: 0,
           deaths: 0,
+          assists: 0,
           color: me.color,
         };
       }
@@ -49,7 +50,7 @@ export function setupSocketEvents() {
         if (id !== myId) {
           const p = data.players[id];
           addOtherPlayer(p);
-          allStats[id] = { name: p.name, kills: 0, deaths: 0, color: p.color };
+          allStats[id] = { name: p.name, kills: 0, deaths: 0, assists: 0, color: p.color };
         }
       }
     },
@@ -58,7 +59,7 @@ export function setupSocketEvents() {
   socket.on("player_joined", (p: PlayerState) => {
     if (p.id === myId) return;
     addOtherPlayer(p);
-    allStats[p.id] = { name: p.name, kills: 0, deaths: 0, color: p.color };
+    allStats[p.id] = { name: p.name, kills: 0, deaths: 0, assists: 0, color: p.color };
   });
 
   socket.on("player_left", (id: string) => {
@@ -97,6 +98,7 @@ export function setupSocketEvents() {
   socket.on("player_killed", (data: { victim: string; killer: string; assist?: string }) => {
     if (allStats[data.killer]) allStats[data.killer].kills++;
     if (allStats[data.victim]) allStats[data.victim].deaths++;
+    if (data.assist && allStats[data.assist]) allStats[data.assist].assists++;
 
     const killerName = allStats[data.killer]?.name ?? "Desconhecido";
     const victimName = allStats[data.victim]?.name ?? "Desconhecido";

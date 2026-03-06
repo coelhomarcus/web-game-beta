@@ -18,5 +18,6 @@ export interface Stats {
   name: string;
   kills: number;
   deaths: number;
+  assists: number;
   color: string;
 }

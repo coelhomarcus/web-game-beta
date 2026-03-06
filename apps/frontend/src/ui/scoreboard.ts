@@ -15,7 +15,7 @@ export function renderScoreboard() {
       s.deaths > 0 ? (s.kills / s.deaths).toFixed(2) : s.kills.toString();
     const tr = document.createElement("tr");
     if (id === myIdRef) tr.classList.add("my-row");
-    tr.innerHTML = `<td><span class="player-dot" style="background:${s.color}"></span>${s.name}</td><td>${s.kills}</td><td>${s.deaths}</td><td>${kd}</td>`;
+    tr.innerHTML = `<td><span class="player-dot" style="background:${s.color}"></span>${s.name}</td><td>${s.kills}</td><td>${s.assists}</td><td>${s.deaths}</td><td>${kd}</td>`;
     scoreBody.appendChild(tr);
   }
 }

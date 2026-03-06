@@ -107,7 +107,7 @@ export function registerHandlers(io: Server, socket: Socket) {
         }
     });
 
-    socket.on('hit_player', (data: { targetId: string }) => {
+    socket.on('hit_player', (data: { targetId: string; damage?: number }) => {
         const target = players[data.targetId];
         if (target && !target.isDead && !target.isInvincible) {
             target.hp -= BULLET_DAMAGE;

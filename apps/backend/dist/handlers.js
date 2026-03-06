@@ -97,6 +97,7 @@ function registerHandlers(io, socket) {
         }
     });
     socket.on('hit_player', (data) => {
+        var _a;
         const target = players[data.targetId];
         if (target && !target.isDead && !target.isInvincible) {
             target.hp -= config_1.BULLET_DAMAGE;

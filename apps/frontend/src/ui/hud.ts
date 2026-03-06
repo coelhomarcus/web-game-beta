@@ -1,4 +1,5 @@
-import { type WeaponDef } from "../systems/shooting";
+import type { WeaponDef } from "../systems/shooting";
+import { WEAPONS } from "../systems/shooting";
 
 const hud = document.createElement("div");
 hud.id = "hud";
@@ -10,8 +11,15 @@ hud.innerHTML = `
   </div>
   <div id="hud-kills"><span id="hud-kills-value">0</span></div>
   <div id="hud-grenade">💣 <span id="hud-grenade-label">Q</span><div id="hud-grenade-cd"></div></div>
+  <div id="hud-weapon">
+    <span id="hud-weapon-name">${WEAPONS.ar.name}</span>
+    <div id="hud-weapon-keys">
+      <span class="wkey active" id="wkey-1">1 M4A1</span>
+      <span class="wkey" id="wkey-2">2 AWP</span>
+    </div>
+  </div>
   <div id="hud-ammo">
-    🔫 <span id="hud-ammo-current">20</span><span id="hud-ammo-sep">/</span><span id="hud-ammo-reserve">∞</span>
+    🔫 <span id="hud-ammo-current">${WEAPONS.ar.magSize}</span><span id="hud-ammo-sep">/</span><span id="hud-ammo-reserve">∞</span>
     <div id="hud-ammo-reload"></div>
   </div>`;
 document.body.appendChild(hud);
@@ -22,6 +30,9 @@ export const hudKillsVal = document.getElementById("hud-kills-value") as HTMLEle
 const hudAmmoCurrent = document.getElementById("hud-ammo-current") as HTMLElement;
 const hudAmmoEl = document.getElementById("hud-ammo") as HTMLElement;
 const hudAmmoReload = document.getElementById("hud-ammo-reload") as HTMLElement;
+const hudWeaponName = document.getElementById("hud-weapon-name") as HTMLElement;
+const wkey1 = document.getElementById("wkey-1") as HTMLElement;
+const wkey2 = document.getElementById("wkey-2") as HTMLElement;
 
 export function updateHudHp(hp: number) {
   const pct = Math.max(0, hp);
@@ -44,13 +55,16 @@ export function updateHudAmmo(current: number, reloading: boolean) {
     hudAmmoEl.classList.remove("reloading");
     hudAmmoReload.textContent = "";
   }
-  // Flash red when low ammo (≤5), normal otherwise
   hudAmmoEl.classList.toggle("low-ammo", !reloading && current <= 5 && current > 0);
   hudAmmoEl.classList.toggle("empty-ammo", !reloading && current === 0);
 }
 
 export function updateHudWeapon(w: WeaponDef) {
-  hudAmmoCurrent.textContent = String(w.magSize);
+  hudWeaponName.textContent = w.name;
+  hudWeaponName.dataset.weapon = w.id;
+  wkey1.classList.toggle("active", w.id === "ar");
+  wkey2.classList.toggle("active", w.id === "awp");
+  hudAmmoEl.classList.toggle("awp-ammo", w.id === "awp");
 }
 
 updateHudHp(100);

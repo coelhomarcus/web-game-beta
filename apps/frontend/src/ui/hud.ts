@@ -1,4 +1,5 @@
-import { MAG_SIZE } from "../systems/shooting";
+import { MAG_SIZE } from "../config";
+import type { WeaponDef } from "../systems/shooting";
 
 const hud = document.createElement("div");
 hud.id = "hud";
@@ -11,7 +12,8 @@ hud.innerHTML = `
   <div id="hud-kills"><span id="hud-kills-value">0</span></div>
   <div id="hud-grenade">💣 <span id="hud-grenade-label">Q</span><div id="hud-grenade-cd"></div></div>
   <div id="hud-ammo">
-    🔫 <span id="hud-ammo-current">${MAG_SIZE}</span><span id="hud-ammo-sep">/</span><span id="hud-ammo-reserve">∞</span>
+    <span id="hud-weapon-name">M4A1</span>
+    <span id="hud-ammo-current">${MAG_SIZE}</span><span id="hud-ammo-sep">/</span><span id="hud-ammo-reserve">∞</span>
     <div id="hud-ammo-reload"></div>
   </div>`;
 document.body.appendChild(hud);
@@ -22,6 +24,7 @@ export const hudKillsVal = document.getElementById("hud-kills-value") as HTMLEle
 const hudAmmoCurrent = document.getElementById("hud-ammo-current") as HTMLElement;
 const hudAmmoEl = document.getElementById("hud-ammo") as HTMLElement;
 const hudAmmoReload = document.getElementById("hud-ammo-reload") as HTMLElement;
+const hudWeaponName = document.getElementById("hud-weapon-name") as HTMLElement;
 
 export function updateHudHp(hp: number) {
   const pct = Math.max(0, hp);
@@ -47,6 +50,11 @@ export function updateHudAmmo(current: number, reloading: boolean) {
   // Flash red when low ammo (≤5), normal otherwise
   hudAmmoEl.classList.toggle("low-ammo", !reloading && current <= 5 && current > 0);
   hudAmmoEl.classList.toggle("empty-ammo", !reloading && current === 0);
+}
+
+export function updateHudWeapon(weapon: WeaponDef) {
+  hudWeaponName.textContent = weapon.name;
+  hudAmmoEl.dataset.weapon = weapon.id;
 }
 
 updateHudHp(100);

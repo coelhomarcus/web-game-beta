@@ -94,14 +94,15 @@ export function setupSocketEvents() {
     } else flashPlayerHit(data.id);
   });
 
-  socket.on("player_killed", (data: { victim: string; killer: string }) => {
+  socket.on("player_killed", (data: { victim: string; killer: string; assist?: string }) => {
     if (allStats[data.killer]) allStats[data.killer].kills++;
     if (allStats[data.victim]) allStats[data.victim].deaths++;
 
     const killerName = allStats[data.killer]?.name ?? "Desconhecido";
     const victimName = allStats[data.victim]?.name ?? "Desconhecido";
+    const assistName = data.assist ? (allStats[data.assist]?.name ?? undefined) : undefined;
 
-    showKillFeedEntry(killerName, victimName, data.killer === myId);
+    showKillFeedEntry(killerName, victimName, data.killer === myId, assistName);
 
     if (data.victim === myId) {
       setIsDead(true);

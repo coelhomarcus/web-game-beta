@@ -7,6 +7,7 @@ import "./scene/map";
 // Initialize UI (side effects: appends DOM elements)
 import "./ui/hud";
 import "./ui/overlays";
+import "./ui/chat";
 
 // Initialize player systems
 import { makeWeapon } from "./player/PlayerModel";

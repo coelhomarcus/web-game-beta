@@ -1,7 +1,7 @@
 import { PLAYER_HEIGHT } from "./config";
 import { scene, camera, renderer } from "./scene/setup";
 import { socket } from "./network/socket";
-import { controls, getIsDead } from "./systems/input";
+import { controls, getIsDead, getGameStarted } from "./systems/input";
 import { updatePhysics } from "./systems/physics";
 import { updateBullets, updateAmmo } from "./systems/shooting";
 import { updateGrenade } from "./systems/grenade";
@@ -18,7 +18,7 @@ export function animate() {
   const isDead = getIsDead();
   const myId = getMyId();
 
-  if (controls.isLocked && !isDead) {
+  if (getGameStarted() && !isDead) {
     updatePhysics(controls, delta);
 
     if (myId) {

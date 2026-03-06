@@ -43,7 +43,8 @@ hud.innerHTML = `
     <div id="hud-hp-bar-bg"><div id="hud-hp-bar"></div></div>
     <span id="hud-hp-value">100</span>
   </div>
-  <div id="hud-kills"><span id="hud-kills-value">0</span></div>`;
+  <div id="hud-kills"><span id="hud-kills-value">0</span></div>
+  <div id="hud-grenade">💣 <span id="hud-grenade-label">Q</span><div id="hud-grenade-cd"></div></div>`;
 document.body.appendChild(hud);
 
 const hudHpBar = document.getElementById("hud-hp-bar") as HTMLElement;
@@ -97,6 +98,91 @@ function createVisualBullet(origin: THREE.Vector3, dir: THREE.Vector3) {
   mesh.position.copy(origin);
   scene.add(mesh);
   activeBullets.push({ mesh, dir: dir.clone().normalize(), lifeTime: 0 });
+}
+
+// ─── Grenade ──────────────────────────────────────────────────────────────────
+const GRENADE_FUSE      = 2.0;   // seconds before explosion
+const GRENADE_COOLDOWN  = 12.0;  // seconds before next throw
+const GRENADE_GRAVITY   = -18;
+const GRENADE_THROW_SPD = 14;    // forward speed
+const GRENADE_THROW_UP  = 6;     // upward speed
+
+interface ActiveGrenade {
+  mesh: THREE.Mesh;
+  vel: THREE.Vector3;
+  fuse: number;       // countdown to explosion
+}
+
+let activeGrenade: ActiveGrenade | null = null;
+let grenadeCooldown = 0;
+
+const grenadeGeo = new THREE.SphereGeometry(0.12, 8, 8);
+const grenadetMat = new THREE.MeshStandardMaterial({ color: 0x2d5a1b, roughness: 0.6 });
+const hudGrenadeEl   = document.getElementById('hud-grenade')   as HTMLElement;
+const hudGrenadeCd   = document.getElementById('hud-grenade-cd') as HTMLElement;
+
+function throwGrenade() {
+  if (!controls.isLocked || isDead || activeGrenade || grenadeCooldown > 0) return;
+
+  const mesh = new THREE.Mesh(grenadeGeo, grenadetMat);
+  const origin = new THREE.Vector3();
+  camera.getWorldPosition(origin);
+  origin.y -= 0.2;
+
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+
+  const vel = forward.clone().multiplyScalar(GRENADE_THROW_SPD);
+  vel.y += GRENADE_THROW_UP;
+
+  mesh.position.copy(origin);
+  scene.add(mesh);
+
+  activeGrenade = { mesh, vel, fuse: GRENADE_FUSE };
+  grenadeCooldown = GRENADE_COOLDOWN;
+}
+
+function explodeGrenade(pos: THREE.Vector3) {
+  // Bright flash sphere
+  const flashGeo = new THREE.SphereGeometry(0.5, 8, 8);
+  const flashMat = new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.9 });
+  const flash = new THREE.Mesh(flashGeo, flashMat);
+  flash.position.copy(pos);
+  scene.add(flash);
+
+  // Expand + fade out
+  let t = 0;
+  const expandFlash = () => {
+    t += 0.05;
+    flash.scale.setScalar(1 + t * 14);
+    flashMat.opacity = Math.max(0, 0.9 - t * 1.5);
+    if (t < 0.6) requestAnimationFrame(expandFlash);
+    else scene.remove(flash);
+  };
+  requestAnimationFrame(expandFlash);
+
+  // Debris particles
+  const debrisGeo = new THREE.SphereGeometry(0.06, 4, 4);
+  for (let i = 0; i < 16; i++) {
+    const debrisMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+    const d = new THREE.Mesh(debrisGeo, debrisMat);
+    d.position.copy(pos);
+    const dir = new THREE.Vector3(
+      (Math.random() - 0.5) * 2,
+      Math.random(),
+      (Math.random() - 0.5) * 2,
+    ).normalize().multiplyScalar(4 + Math.random() * 4);
+    scene.add(d);
+    let dt = 0;
+    const animDebris = () => {
+      dt += 0.05;
+      d.position.addScaledVector(dir, 0.05);
+      d.position.y = Math.max(0.1, d.position.y - 0.1);
+      if (dt < 0.8) requestAnimationFrame(animDebris);
+      else scene.remove(d);
+    };
+    requestAnimationFrame(animDebris);
+  }
 }
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
@@ -457,6 +543,9 @@ window.addEventListener("keydown", (e) => {
     case "Space":
       if (isOnGround) wantsJump = true;
       break;
+    case "KeyQ":
+      throwGrenade();
+      break;
     case "Tab":
       e.preventDefault();
       renderScoreboard();
@@ -648,6 +737,10 @@ socket.on("server_full", (data: { message: string }) => {
   alert(data.message);
 });
 
+socket.on("grenade_explode", (data: { position: { x: number; y: number; z: number } }) => {
+  explodeGrenade(new THREE.Vector3(data.position.x, data.position.y, data.position.z));
+});
+
 // ─── Visual feedback ──────────────────────────────────────────────────────────
 const damageOverlay = document.createElement("div");
 damageOverlay.id = "damage-overlay";
@@ -711,6 +804,24 @@ function addOtherPlayer(player: PlayerState) {
 // ─── Game loop ────────────────────────────────────────────────────────────────
 const BULLET_SPEED = 60.0,
   BULLET_MAX_LIFETIME = 2.0;
+const BULLET_RADIUS = 0.06;
+
+// Direct AABB check for bullet vs map blocks — more reliable than Raycaster
+// (avoids face-culling and matrixWorld sync issues).
+function bulletHitsBlock(pos: THREE.Vector3): boolean {
+  for (const box of mapBlocks) {
+    const geo = box.geometry as THREE.BoxGeometry;
+    const hw = geo.parameters.width  / 2 + BULLET_RADIUS;
+    const hh = geo.parameters.height / 2 + BULLET_RADIUS;
+    const hd = geo.parameters.depth  / 2 + BULLET_RADIUS;
+    if (
+      Math.abs(pos.x - box.position.x) < hw &&
+      Math.abs(pos.y - box.position.y) < hh &&
+      Math.abs(pos.z - box.position.z) < hd
+    ) return true;
+  }
+  return false;
+}
 
 function animate() {
   requestAnimationFrame(animate);
@@ -759,11 +870,98 @@ function animate() {
 
   for (let i = activeBullets.length - 1; i >= 0; i--) {
     const b = activeBullets[i];
-    b.mesh.position.addScaledVector(b.dir, BULLET_SPEED * delta);
+    const step = BULLET_SPEED * delta;
+
+    // Compute next position and test AABB against every map block
+    const nextPos = b.mesh.position.clone().addScaledVector(b.dir, step);
+
+    if (bulletHitsBlock(nextPos)) {
+      scene.remove(b.mesh);
+      activeBullets.splice(i, 1);
+      continue;
+    }
+
+    b.mesh.position.copy(nextPos);
     b.lifeTime += delta;
     if (b.lifeTime > BULLET_MAX_LIFETIME || b.mesh.position.y <= 0) {
       scene.remove(b.mesh);
       activeBullets.splice(i, 1);
+    }
+  }
+
+  // ─── Grenade physics ────────────────────────────────────────────────
+  if (grenadeCooldown > 0) {
+    grenadeCooldown -= delta;
+    if (grenadeCooldown < 0) grenadeCooldown = 0;
+  }
+  // Update HUD — dim when on cooldown, show remaining time
+  if (hudGrenadeEl) {
+    hudGrenadeEl.style.opacity = grenadeCooldown > 0 ? '0.45' : '1';
+  }
+  if (hudGrenadeCd) {
+    hudGrenadeCd.textContent = grenadeCooldown > 0
+      ? Math.ceil(grenadeCooldown) + 's'
+      : '';
+  }
+
+  if (activeGrenade) {
+    const g = activeGrenade;
+    g.fuse -= delta;
+
+    // Apply gravity
+    g.vel.y += GRENADE_GRAVITY * delta;
+
+    const nextGPos = g.mesh.position.clone().addScaledVector(g.vel, delta);
+
+    // Ground bounce / stop
+    if (nextGPos.y <= 0.12) {
+      nextGPos.y = 0.12;
+      g.vel.y = Math.abs(g.vel.y) * 0.35;  // bounce with damping
+      g.vel.x *= 0.6;
+      g.vel.z *= 0.6;
+      if (Math.abs(g.vel.y) < 0.5) g.vel.y = 0; // rest on ground
+    }
+
+    // Block AABB stop (simplified: stop on contact)
+    let blockedX = false, blockedZ = false;
+    for (const box of mapBlocks) {
+      const geo = box.geometry as THREE.BoxGeometry;
+      const hw = geo.parameters.width  / 2 + 0.15;
+      const hh = geo.parameters.height / 2 + 0.15;
+      const hd = geo.parameters.depth  / 2 + 0.15;
+      const bp = box.position;
+      if (
+        Math.abs(nextGPos.x - bp.x) < hw &&
+        Math.abs(nextGPos.y - bp.y) < hh &&
+        Math.abs(nextGPos.z - bp.z) < hd
+      ) {
+        const overlapX = hw - Math.abs(nextGPos.x - bp.x);
+        const overlapZ = hd - Math.abs(nextGPos.z - bp.z);
+        if (overlapX < overlapZ) {
+          nextGPos.x = g.mesh.position.x;
+          g.vel.x *= -0.4;
+          blockedX = true;
+        } else {
+          nextGPos.z = g.mesh.position.z;
+          g.vel.z *= -0.4;
+          blockedZ = true;
+        }
+      }
+    }
+    void blockedX; void blockedZ;
+
+    g.mesh.position.copy(nextGPos);
+
+    if (g.fuse <= 0) {
+      // Detonate
+      const ep = g.mesh.position.clone();
+      scene.remove(g.mesh);
+      activeGrenade = null;
+
+      // Tell the server — it applies damage and broadcasts grenade_explode to all
+      socket.emit('grenade_throw', {
+        explosionPos: { x: ep.x, y: ep.y, z: ep.z },
+      });
     }
   }
 

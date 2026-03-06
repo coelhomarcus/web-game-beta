@@ -1,5 +1,5 @@
 /* ── Base ─────────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap");
 
 * {
   box-sizing: border-box;
@@ -13,7 +13,7 @@ html {
   background: #c8e6ff;
   width: 100vw;
   height: 100vh;
-  font-family: 'Nunito', 'Arial Rounded MT Bold', Arial, sans-serif;
+  font-family: "Nunito", "Arial Rounded MT Bold", Arial, sans-serif;
 }
 
 #app {
@@ -36,8 +36,16 @@ html {
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 40%);
+    radial-gradient(
+      circle at 15% 20%,
+      rgba(255, 255, 255, 0.12) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 85% 80%,
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 40%
+    );
   pointer-events: none;
 }
 
@@ -103,10 +111,12 @@ html {
   padding: 13px 16px;
   font-size: 16px;
   font-weight: 700;
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
   color: #1a1a2e;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 #name-input::placeholder {
@@ -125,14 +135,17 @@ html {
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  font-family: 'Nunito', sans-serif;
+  font-family: "Nunito", sans-serif;
   font-size: 17px;
   font-weight: 900;
   letter-spacing: 1.5px;
   color: #fff;
   background: #00c853;
   border-bottom: 4px solid #00952e;
-  transition: transform 0.1s, border-bottom-width 0.1s, filter 0.1s;
+  transition:
+    transform 0.1s,
+    border-bottom-width 0.1s,
+    filter 0.1s;
   box-shadow: 0 4px 12px rgba(0, 200, 83, 0.35);
 }
 
@@ -249,7 +262,9 @@ html {
     0 10px 40px rgba(0, 0, 0, 0.25);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s, transform 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
   overflow: hidden;
 }
 
@@ -353,7 +368,7 @@ html {
 
 #crosshair::before,
 #crosshair::after {
-  content: '';
+  content: "";
   position: absolute;
   background: rgba(255, 255, 255, 0.9);
   border-radius: 2px;
@@ -398,7 +413,9 @@ html {
   border: 3px solid #e0e0e0;
   border-radius: 50px;
   padding: 6px 14px 6px 10px;
-  box-shadow: 0 3px 0 #bdbdbd, 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 3px 0 #bdbdbd,
+    0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 #hud-hp-label {
@@ -410,7 +427,7 @@ html {
 
 /* heart icon via pseudo */
 #hud-hp-label::before {
-  content: '❤️ ';
+  content: "❤️ ";
   font-size: 14px;
 }
 
@@ -428,7 +445,9 @@ html {
   width: 100%;
   background: #00c853;
   border-radius: 10px;
-  transition: width 0.25s, background 0.3s;
+  transition:
+    width 0.25s,
+    background 0.3s;
 }
 
 #hud-hp-value {
@@ -448,16 +467,50 @@ html {
   border: 3px solid #e0e0e0;
   border-radius: 50px;
   padding: 6px 16px 6px 12px;
-  box-shadow: 0 3px 0 #bdbdbd, 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 3px 0 #bdbdbd,
+    0 4px 12px rgba(0, 0, 0, 0.15);
   font-size: 14px;
   font-weight: 900;
   color: #37474f;
 }
 
 #hud-kills::before {
-  content: '☠';
+  content: "☠";
   font-size: 15px;
   color: #e53935;
+}
+
+/* Grenade pill */
+#hud-grenade {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff8e1;
+  border: 3px solid #ffd54f;
+  border-radius: 50px;
+  padding: 6px 14px 6px 10px;
+  box-shadow:
+    0 3px 0 #fbc02d,
+    0 4px 12px rgba(255, 193, 7, 0.2);
+  font-size: 14px;
+  font-weight: 900;
+  color: #37474f;
+  transition: opacity 0.3s;
+}
+
+#hud-grenade-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: #795548;
+  letter-spacing: 0.5px;
+}
+
+#hud-grenade-cd {
+  font-size: 12px;
+  font-weight: 900;
+  color: #e65100;
+  min-width: 18px;
 }
 
 /* ── Hit marker ────────────────────────────────────────────────────────────── */
@@ -480,7 +533,7 @@ html {
 
 #hit-marker::before,
 #hit-marker::after {
-  content: '';
+  content: "";
   position: absolute;
   background: #ff1744;
   border-radius: 2px;
@@ -508,7 +561,11 @@ html {
   inset: 0;
   pointer-events: none;
   z-index: 90;
-  background: radial-gradient(ellipse at center, transparent 45%, rgba(220, 0, 0, 0.6) 100%);
+  background: radial-gradient(
+    ellipse at center,
+    transparent 45%,
+    rgba(220, 0, 0, 0.6) 100%
+  );
   opacity: 0;
   transition: opacity 0.1s;
 }
@@ -542,13 +599,17 @@ html {
   display: flex;
   align-items: center;
   gap: 5px;
-  box-shadow: 0 2px 0 #bdbdbd, 0 3px 8px rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 2px 0 #bdbdbd,
+    0 3px 8px rgba(0, 0, 0, 0.12);
 }
 
 .kill-feed-item.my-kill {
   border-color: #ffd600;
   background: #fffde7;
-  box-shadow: 0 2px 0 #f9a825, 0 3px 8px rgba(255, 214, 0, 0.3);
+  box-shadow:
+    0 2px 0 #f9a825,
+    0 3px 8px rgba(255, 214, 0, 0.3);
 }
 
 .kf-killer {

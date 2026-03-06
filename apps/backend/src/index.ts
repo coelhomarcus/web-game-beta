@@ -45,26 +45,55 @@ function makeRng() {
     return () => { s ^= s << 13; s ^= s >> 17; s ^= s << 5; return (s >>> 0) / 2 ** 32; };
 }
 
-interface BoxBounds { cx: number; cz: number; hw: number; hd: number; }
+interface BoxBounds { cx: number; cz: number; cy: number; hw: number; hd: number; hh: number; }
 const MAP_BOXES: BoxBounds[] = [];
 ((() => {
     const rng = makeRng();
     for (let i = 0; i < 20; i++) {
-        const h = rng() * 4 + 1; // consumed but not needed for XZ
+        const h = rng() * 4 + 1;
         const x = (rng() - 0.5) * 40;
         const z = (rng() - 0.5) * 40;
-        MAP_BOXES.push({ cx: x, cz: z, hw: 1, hd: 1 }); // box half-width/depth = 1 (2x2 box)
-        void h;
+        // cy = h/2 (box bottom sits on y=0), hh = h/2
+        MAP_BOXES.push({ cx: x, cz: z, cy: h / 2, hw: 1, hd: 1, hh: h / 2 });
     }
 }))();
 
 const SPAWN_PLAYER_RADIUS = 1.2; // extra margin so spawn is never right at the wall
+const PLAYER_RADIUS_SRV = 0.4;
+const PLAYER_HEIGHT_SRV = 1.6;
 
 function isInsideBox(x: number, z: number): boolean {
     return MAP_BOXES.some(b =>
         Math.abs(x - b.cx) < b.hw + SPAWN_PLAYER_RADIUS &&
         Math.abs(z - b.cz) < b.hd + SPAWN_PLAYER_RADIUS
     );
+}
+
+// Mirror of the frontend resolveBoxCollision — keeps players outside blocks.
+function resolveBoxCollision(
+    pos: { x: number; y: number; z: number },
+    box: BoxBounds & { cy: number; hh: number }
+): void {
+    const hw = box.hw + PLAYER_RADIUS_SRV;
+    const hd = box.hd + PLAYER_RADIUS_SRV;
+    const pBot = pos.y - PLAYER_HEIGHT_SRV;
+    const pTop = pos.y;
+    const bBot = box.cy - box.hh;
+    const bTop = box.cy + box.hh;
+    const ox = hw - Math.abs(pos.x - box.cx);
+    const oy = Math.min(pTop, bTop) - Math.max(pBot, bBot);
+    const oz = hd - Math.abs(pos.z - box.cz);
+    if (ox > 0 && oy > 0 && oz > 0) {
+        if (ox < oz && ox < oy) {
+            pos.x += ox * Math.sign(pos.x - box.cx);
+        } else if (oz < ox && oz < oy) {
+            pos.z += oz * Math.sign(pos.z - box.cz);
+        } else if (pos.y > box.cy) {
+            pos.y = bTop + PLAYER_HEIGHT_SRV;
+        } else {
+            pos.y = bBot - 0.01;
+        }
+    }
 }
 
 function getRandomSpawn() {
@@ -109,7 +138,13 @@ io.on('connection', (socket) => {
 
     socket.on('update_state', (data: { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number } }) => {
         if (players[socket.id] && !players[socket.id].isDead) {
-            players[socket.id].position = data.position;
+            const pos = { ...data.position };
+            // Clamp to map bounds
+            pos.x = Math.max(-49, Math.min(49, pos.x));
+            pos.z = Math.max(-49, Math.min(49, pos.z));
+            // Server-side box collision — prevents wall-clipping from being broadcast
+            for (const box of MAP_BOXES) resolveBoxCollision(pos, box);
+            players[socket.id].position = pos;
             players[socket.id].rotation = data.rotation;
         }
     });
@@ -117,6 +152,49 @@ io.on('connection', (socket) => {
     socket.on('shoot', (data: { origin: { x: number; y: number; z: number }; direction: { x: number; y: number; z: number } }) => {
         // Broadcast the shot to all OTHER players so they see the bullet
         socket.broadcast.emit('shoot_bullet', data);
+    });
+
+    // ─── Grenade ──────────────────────────────────────────────────────────────
+    socket.on('grenade_throw', (data: {
+        explosionPos: { x: number; y: number; z: number }
+    }) => {
+        const BLAST_RADIUS = 7;
+        const MAX_DAMAGE   = 100;
+        const MIN_DAMAGE   = 25;
+        const ep = data.explosionPos;
+
+        // Broadcast explosion visual to ALL clients (including thrower)
+        io.emit('grenade_explode', { position: ep, throwerId: socket.id });
+
+        // Apply damage with distance falloff
+        for (const [id, target] of Object.entries(players)) {
+            if (target.isDead) continue;
+            const dx = target.position.x - ep.x;
+            const dy = target.position.y - ep.y;
+            const dz = target.position.z - ep.z;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist > BLAST_RADIUS) continue;
+
+            const t = 1 - dist / BLAST_RADIUS;
+            const dmg = Math.round(MIN_DAMAGE + t * (MAX_DAMAGE - MIN_DAMAGE));
+            target.hp = Math.max(0, target.hp - dmg);
+
+            if (target.hp <= 0) {
+                target.hp = 0;
+                target.isDead = true;
+                io.emit('player_killed', { victim: id, killer: socket.id });
+                setTimeout(() => {
+                    if (players[id]) {
+                        players[id].hp = 100;
+                        players[id].isDead = false;
+                        players[id].position = getRandomSpawn();
+                        io.emit('player_respawned', players[id]);
+                    }
+                }, 3000);
+            } else {
+                io.emit('player_hit', { id, hp: target.hp });
+            }
+        }
     });
 
     socket.on('hit_player', (data: { targetId: string }) => {

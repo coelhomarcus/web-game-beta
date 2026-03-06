@@ -2,9 +2,19 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
 
 const app = express();
 app.use(cors());
+
+// Serve frontend build in production
+const frontendDist = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendDist));
+app.get('*', (_req, res, next) => {
+  // Only serve index.html for non-API / non-socket requests
+  if (_req.path.startsWith('/socket.io')) return next();
+  res.sendFile(path.join(frontendDist, 'index.html'));
+});
 
 const server = http.createServer(app);
 const io = new Server(server, {

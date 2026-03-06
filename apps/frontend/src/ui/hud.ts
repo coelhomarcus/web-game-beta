@@ -1,4 +1,4 @@
-import { getCurrentWeapon, type WeaponDef } from "../systems/shooting";
+import { type WeaponDef } from "../systems/shooting";
 
 const hud = document.createElement("div");
 hud.id = "hud";

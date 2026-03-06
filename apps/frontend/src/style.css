@@ -1004,51 +1004,5 @@ body.scoped #crosshair {
     0 4px 12px rgba(0, 151, 167, 0.2);
 }
 
-/* ── AWP Scope overlay ─────────────────────────────────────────────────────── */
-#scope-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-}
 
-/* Black panels that create the "tube" look */
-.scope-lens-shade {
-  position: absolute;
-  background: #000;
-}
-.scope-top    { top: 0; left: 0; right: 0; bottom: calc(50% + 38vmin); }
-.scope-bottom { bottom: 0; left: 0; right: 0; top: calc(50% + 38vmin); }
-.scope-left   { top: calc(50% - 38vmin); bottom: calc(50% - 38vmin); left: 0; right: calc(50% + 38vmin); }
-.scope-right  { top: calc(50% - 38vmin); bottom: calc(50% - 38vmin); right: 0; left: calc(50% + 38vmin); }
-
-/* Circular scope ring */
-.scope-ring {
-  position: absolute;
-  width: 76vmin;
-  height: 76vmin;
-  border-radius: 50%;
-  border: 3px solid rgba(0, 200, 220, 0.55);
-  box-shadow:
-    0 0 0 2px rgba(0, 0, 0, 0.9),
-    inset 0 0 60px rgba(0, 0, 0, 0.25);
-}
-
-/* Crosshair lines */
-.scope-cross {
-  position: absolute;
-  background: rgba(0, 200, 220, 0.75);
-}
-.scope-h {
-  width: 76vmin;
-  height: 1px;
-}
-.scope-v {
-  height: 76vmin;
-  width: 1px;
-}
 

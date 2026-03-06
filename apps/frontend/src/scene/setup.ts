@@ -3,7 +3,8 @@ import { PLAYER_HEIGHT } from "../config";
 
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 0, 60);
+export const sceneFog = new THREE.Fog(0x87ceeb, 0, 60);
+scene.fog = sceneFog;
 
 export const camera = new THREE.PerspectiveCamera(
   75,

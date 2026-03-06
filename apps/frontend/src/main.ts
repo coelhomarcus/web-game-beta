@@ -36,6 +36,11 @@ window.addEventListener("weapon-switched", () => {
   camera.add(fpWeapon);
 });
 
+// Hide/show FP weapon when scoping with AWP
+window.addEventListener("scope-changed", ((e: CustomEvent) => {
+  fpWeapon.visible = !e.detail.scoped;
+}) as EventListener);
+
 // Start screen
 const nameInput = document.getElementById("name-input") as HTMLInputElement;
 const playBtn = document.getElementById("play-btn") as HTMLButtonElement;

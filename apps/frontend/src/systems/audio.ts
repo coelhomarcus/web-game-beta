@@ -49,6 +49,55 @@ export function playAwpSound() {
   crack.stop(t + 0.08);
 }
 
+export function playGrenadeThrowSound() {
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(400, t);
+  osc.frequency.exponentialRampToValueAtTime(150, t + 0.12);
+  gain.gain.setValueAtTime(0.18, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + 0.15);
+}
+
+export function playExplosionSound() {
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const t = audioCtx.currentTime;
+
+  // Deep impact boom
+  const boom = audioCtx.createOscillator();
+  const boomGain = audioCtx.createGain();
+  boom.type = "sine";
+  boom.frequency.setValueAtTime(120, t);
+  boom.frequency.exponentialRampToValueAtTime(15, t + 0.7);
+  boomGain.gain.setValueAtTime(1.0, t);
+  boomGain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+  boom.connect(boomGain);
+  boomGain.connect(audioCtx.destination);
+  boom.start(t);
+  boom.stop(t + 0.7);
+
+  // Noise burst (white-noise-like via many oscillators)
+  for (let i = 0; i < 6; i++) {
+    const n = audioCtx.createOscillator();
+    const ng = audioCtx.createGain();
+    n.type = "sawtooth";
+    n.frequency.setValueAtTime(300 + Math.random() * 800, t);
+    n.frequency.exponentialRampToValueAtTime(50, t + 0.4);
+    ng.gain.setValueAtTime(0.15, t);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    n.connect(ng);
+    ng.connect(audioCtx.destination);
+    n.start(t);
+    n.stop(t + 0.4);
+  }
+}
+
 export function playReloadSound() {
   if (audioCtx.state === "suspended") audioCtx.resume();
   [0, 0.18].forEach((offset) => {

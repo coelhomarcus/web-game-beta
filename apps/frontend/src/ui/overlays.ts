@@ -47,6 +47,14 @@ function stopLocalInvincibleBlink() {
   invincibleOverlay.style.display = "none";
 }
 
+// AWP scope overlay
+const scopeOverlay = document.createElement("div");
+scopeOverlay.id = "scope-overlay";
+document.body.appendChild(scopeOverlay);
+
+export function showScope() { scopeOverlay.classList.add("active"); }
+export function hideScope() { scopeOverlay.classList.remove("active"); }
+
 // Kill feed
 const killFeed = document.createElement("div");
 killFeed.id = "kill-feed";
@@ -71,20 +79,4 @@ export function showKillFeedEntry(
   }, 2500);
 }
 
-// AWP scope overlay
-const scopeOverlay = document.createElement("div");
-scopeOverlay.id = "scope-overlay";
-scopeOverlay.innerHTML = `
-  <div class="scope-ring"></div>
-  <div class="scope-cross scope-h"></div>
-  <div class="scope-cross scope-v"></div>
-  <div class="scope-lens-shade scope-top"></div>
-  <div class="scope-lens-shade scope-bottom"></div>
-  <div class="scope-lens-shade scope-left"></div>
-  <div class="scope-lens-shade scope-right"></div>
-`;
-scopeOverlay.style.display = "none";
-document.body.appendChild(scopeOverlay);
 
-export function showScope() { scopeOverlay.style.display = "flex"; }
-export function hideScope() { scopeOverlay.style.display = "none"; }

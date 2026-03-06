@@ -10,7 +10,7 @@ import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
 import { velocity } from "../systems/physics";
 import { createVisualBullet } from "../systems/shooting";
-import { explodeGrenade, spawnRemoteGrenade } from "../systems/grenade";
+import { explodeGrenade, spawnRemoteGrenade, cleanupRemoteGrenades } from "../systems/grenade";
 import { updateHudHp, hudKillsVal } from "../ui/hud";
 import { allStats, setMyIdRef } from "../ui/scoreboard";
 import { flashDamage, showKillFeedEntry, startLocalInvincibleBlink } from "../ui/overlays";
@@ -164,6 +164,7 @@ export function setupSocketEvents() {
   });
 
   socket.on("grenade_explode", (data: { position: { x: number; y: number; z: number } }) => {
+    cleanupRemoteGrenades();
     explodeGrenade(new THREE.Vector3(data.position.x, data.position.y, data.position.z));
   });
 

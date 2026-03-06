@@ -4,7 +4,7 @@ import {
   setMoveForward, setMoveBackward, setMoveLeft, setMoveRight,
   setWantsJump, isOnGround,
 } from "./physics";
-import { handleShoot, startReload, switchWeapon, enterScope, exitScope } from "./shooting";
+import { handleShoot, startReload, switchWeapon, toggleScope, exitScope } from "./shooting";
 import { throwGrenade } from "./grenade";
 import { renderScoreboard } from "../ui/scoreboard";
 import { isChatOpen, openChat } from "../ui/chat";
@@ -90,13 +90,9 @@ window.addEventListener("mousedown", (e) => {
     }
     handleShoot(isDead, controls);
   } else if (e.button === 2) {
-    // Right-click: scope in with AWP
-    if (controls.isLocked && !isDead) enterScope();
+    // Right-click: toggle scope (AWP)
+    if (controls.isLocked && !isDead) toggleScope();
   }
-});
-
-window.addEventListener("mouseup", (e) => {
-  if (e.button === 2) exitScope();
 });
 
 // Prevent context menu on right-click

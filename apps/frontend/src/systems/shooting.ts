@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { BULLET_SPEED, BULLET_MAX_LIFETIME, BULLET_RADIUS } from "../config";
-import { scene, camera } from "../scene/setup";
+import { scene, camera, sceneFog } from "../scene/setup";
 import { mapBlocks } from "../scene/map";
 import { otherPlayers } from "../player/PlayerModel";
 import { socket } from "../network/socket";
@@ -83,7 +83,12 @@ export function switchWeapon(id: "ar" | "awp") {
   window.dispatchEvent(new CustomEvent("weapon-switched"));
 }
 
-// ─── Scope (AWP right-click) ──────────────────────────────────────────────────
+// ─── Scope (AWP right-click toggle) ───────────────────────────────────────────
+export function toggleScope() {
+  if (currentWeaponId !== "awp") return;
+  if (isScoped) { exitScope(); } else { enterScope(); }
+}
+
 export function enterScope() {
   if (currentWeaponId !== "awp" || isScoped) return;
   isScoped = true;
@@ -91,6 +96,10 @@ export function enterScope() {
   document.body.classList.add("scoped");
   camera.fov = 20;
   camera.updateProjectionMatrix();
+  // Push fog far so scoped view is clear
+  sceneFog.near = 40;
+  sceneFog.far = 200;
+  window.dispatchEvent(new CustomEvent("scope-changed", { detail: { scoped: true } }));
 }
 
 export function exitScope() {
@@ -100,6 +109,10 @@ export function exitScope() {
   document.body.classList.remove("scoped");
   camera.fov = 75;
   camera.updateProjectionMatrix();
+  // Restore normal fog
+  sceneFog.near = 0;
+  sceneFog.far = 60;
+  window.dispatchEvent(new CustomEvent("scope-changed", { detail: { scoped: false } }));
 }
 
 // ─── Reload ───────────────────────────────────────────────────────────────────

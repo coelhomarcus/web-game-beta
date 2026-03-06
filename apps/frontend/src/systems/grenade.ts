@@ -3,6 +3,7 @@ import { GRENADE_FUSE, GRENADE_COOLDOWN, GRENADE_GRAVITY, GRENADE_THROW_SPD, GRE
 import { scene, camera } from "../scene/setup";
 import { mapBlocks } from "../scene/map";
 import { socket } from "../network/socket";
+import { playGrenadeThrowSound, playExplosionSound } from "./audio";
 
 interface ActiveGrenade {
   mesh: THREE.Mesh;
@@ -15,6 +16,12 @@ let grenadeCooldown = 0;
 
 // Remote grenades (visual only, thrown by other players)
 const remoteGrenades: ActiveGrenade[] = [];
+
+export function cleanupRemoteGrenades() {
+  // Remove all remote grenade meshes immediately (called when server sends grenade_explode)
+  for (const g of remoteGrenades) scene.remove(g.mesh);
+  remoteGrenades.length = 0;
+}
 
 const grenadeGeo = new THREE.SphereGeometry(0.12, 8, 8);
 const grenadeMat = new THREE.MeshStandardMaterial({ color: 0x2d5a1b, roughness: 0.6 });
@@ -47,6 +54,8 @@ export function throwGrenade(controls: { isLocked: boolean }, isDead: boolean) {
   activeGrenade = { mesh, vel, fuse: GRENADE_FUSE };
   grenadeCooldown = GRENADE_COOLDOWN;
 
+  playGrenadeThrowSound();
+
   socket.emit("grenade_launched", {
     origin: { x: origin.x, y: origin.y, z: origin.z },
     velocity: { x: vel.x, y: vel.y, z: vel.z },
@@ -61,18 +70,22 @@ export function spawnRemoteGrenade(origin: THREE.Vector3, vel: THREE.Vector3) {
 }
 
 export function explodeGrenade(pos: THREE.Vector3) {
+  playExplosionSound();
+
   const flashGeo = new THREE.SphereGeometry(0.5, 8, 8);
   const flashMat = new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.9 });
   const flash = new THREE.Mesh(flashGeo, flashMat);
   flash.position.copy(pos);
   scene.add(flash);
 
-  let t = 0;
-  const expandFlash = () => {
-    t += 0.05;
+  let start: number | null = null;
+  const DURATION = 0.6; // seconds
+  const expandFlash = (timestamp: number) => {
+    if (start === null) start = timestamp;
+    const t = Math.min((timestamp - start) / 1000 / DURATION, 1);
     flash.scale.setScalar(1 + t * 14);
-    flashMat.opacity = Math.max(0, 0.9 - t * 1.5);
-    if (t < 0.6) requestAnimationFrame(expandFlash);
+    flashMat.opacity = Math.max(0, 0.9 * (1 - t));
+    if (t < 1) requestAnimationFrame(expandFlash);
     else scene.remove(flash);
   };
   requestAnimationFrame(expandFlash);
@@ -88,12 +101,14 @@ export function explodeGrenade(pos: THREE.Vector3) {
       (Math.random() - 0.5) * 2,
     ).normalize().multiplyScalar(4 + Math.random() * 4);
     scene.add(d);
-    let dt = 0;
-    const animDebris = () => {
-      dt += 0.05;
-      d.position.addScaledVector(dir, 0.05);
-      d.position.y = Math.max(0.1, d.position.y - 0.1);
-      if (dt < 0.8) requestAnimationFrame(animDebris);
+    let dStart: number | null = null;
+    const DEBRIS_DUR = 0.8;
+    const animDebris = (ts: number) => {
+      if (dStart === null) dStart = ts;
+      const dt = Math.min((ts - dStart) / 1000 / DEBRIS_DUR, 1);
+      d.position.addScaledVector(dir, 0.016);
+      d.position.y = Math.max(0.1, d.position.y - 0.08);
+      if (dt < 1) requestAnimationFrame(animDebris);
       else scene.remove(d);
     };
     requestAnimationFrame(animDebris);

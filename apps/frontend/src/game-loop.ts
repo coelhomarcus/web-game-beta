@@ -3,7 +3,7 @@ import { scene, camera, renderer } from "./scene/setup";
 import { socket } from "./network/socket";
 import { controls, getIsDead } from "./systems/input";
 import { updatePhysics } from "./systems/physics";
-import { updateBullets } from "./systems/shooting";
+import { updateBullets, updateAmmo } from "./systems/shooting";
 import { updateGrenade } from "./systems/grenade";
 import { getMyId } from "./network/events";
 
@@ -31,6 +31,7 @@ export function animate() {
   }
 
   updateBullets(delta);
+  updateAmmo(delta);
   updateGrenade(delta);
 
   renderer.render(scene, camera);

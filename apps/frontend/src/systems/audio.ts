@@ -16,3 +16,22 @@ export function playShootSound() {
   osc.start();
   osc.stop(audioCtx.currentTime + 0.1);
 }
+
+export function playReloadSound() {
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  // Two short mechanical clicks simulate a reload
+  [0, 0.18].forEach((offset) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(600, audioCtx.currentTime + offset);
+    osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + offset + 0.08);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime + offset);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + offset + 0.08);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + offset);
+    osc.stop(audioCtx.currentTime + offset + 0.08);
+  });
+}
+

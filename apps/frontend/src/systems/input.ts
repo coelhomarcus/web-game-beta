@@ -4,7 +4,7 @@ import {
   setMoveForward, setMoveBackward, setMoveLeft, setMoveRight,
   setWantsJump, isOnGround,
 } from "./physics";
-import { handleShoot } from "./shooting";
+import { handleShoot, startReload } from "./shooting";
 import { throwGrenade } from "./grenade";
 import { renderScoreboard } from "../ui/scoreboard";
 
@@ -47,6 +47,7 @@ window.addEventListener("keydown", (e) => {
     case "KeyD": setMoveRight(true); break;
     case "Space": if (isOnGround) setWantsJump(true); break;
     case "KeyQ": throwGrenade(controls, isDead); break;
+    case "KeyR": startReload(); break;
     case "Tab":
       e.preventDefault();
       renderScoreboard();

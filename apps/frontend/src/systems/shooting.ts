@@ -4,9 +4,42 @@ import { scene, camera } from "../scene/setup";
 import { mapBlocks } from "../scene/map";
 import { otherPlayers } from "../player/PlayerModel";
 import { socket } from "../network/socket";
-import { playShootSound } from "./audio";
+import { playShootSound, playReloadSound } from "./audio";
 import { showHitMarker } from "../ui/overlays";
+import { updateHudAmmo } from "../ui/hud";
 
+// ─── Ammo ─────────────────────────────────────────────────────────────────────
+export const MAG_SIZE = 20;
+export const RELOAD_TIME = 2.0; // seconds
+
+let ammo = MAG_SIZE;
+let isReloading = false;
+let reloadTimer = 0;
+
+export function getAmmo() { return ammo; }
+export function getIsReloading() { return isReloading; }
+
+/** Begin a reload if not already reloading and magazine is not full. */
+export function startReload() {
+  if (isReloading || ammo === MAG_SIZE) return;
+  isReloading = true;
+  reloadTimer = RELOAD_TIME;
+  playReloadSound();
+  updateHudAmmo(ammo, true);
+}
+
+/** Called every frame with delta. Handles reload countdown. */
+export function updateAmmo(delta: number) {
+  if (!isReloading) return;
+  reloadTimer -= delta;
+  if (reloadTimer <= 0) {
+    isReloading = false;
+    ammo = MAG_SIZE;
+    updateHudAmmo(ammo, false);
+  }
+}
+
+// ─── Bullets ──────────────────────────────────────────────────────────────────
 const activeBullets: {
   mesh: THREE.Mesh;
   dir: THREE.Vector3;
@@ -40,7 +73,22 @@ function findPlayerGroup(o: THREE.Object3D): THREE.Group | null {
 
 export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
   if (!controls.isLocked || isDead) return;
+
+  // Block shot if reloading or out of ammo
+  if (isReloading || ammo <= 0) {
+    if (ammo <= 0 && !isReloading) startReload();
+    return;
+  }
+
   playShootSound();
+
+  // Consume ammo
+  ammo--;
+  updateHudAmmo(ammo, false);
+
+  // Auto-reload when magazine runs dry
+  if (ammo === 0) startReload();
+
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
   const allTargets = [
     ...Object.values(otherPlayers),

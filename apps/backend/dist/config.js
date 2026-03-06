@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RESPAWN_TIME = exports.BULLET_DAMAGE = exports.MIN_DAMAGE = exports.MAX_DAMAGE = exports.BLAST_RADIUS = exports.PLAYER_HEIGHT_SRV = exports.PLAYER_RADIUS_SRV = exports.SPAWN_PLAYER_RADIUS = exports.TICK_RATE = exports.MAX_PLAYERS = exports.PORT = void 0;
+exports.PORT = process.env.PORT || 3005;
+exports.MAX_PLAYERS = 5;
+exports.TICK_RATE = 30;
+exports.SPAWN_PLAYER_RADIUS = 1.2;
+exports.PLAYER_RADIUS_SRV = 0.4;
+exports.PLAYER_HEIGHT_SRV = 1.6;
+exports.BLAST_RADIUS = 7;
+exports.MAX_DAMAGE = 100;
+exports.MIN_DAMAGE = 25;
+exports.BULLET_DAMAGE = 25;
+exports.RESPAWN_TIME = 3000;

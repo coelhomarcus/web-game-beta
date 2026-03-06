@@ -513,6 +513,85 @@ html {
   min-width: 18px;
 }
 
+/* Ammo pill */
+#hud-ammo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f5e9;
+  border: 3px solid #a5d6a7;
+  border-radius: 50px;
+  padding: 6px 14px 6px 10px;
+  box-shadow:
+    0 3px 0 #66bb6a,
+    0 4px 12px rgba(76, 175, 80, 0.2);
+  font-size: 14px;
+  font-weight: 900;
+  color: #37474f;
+  transition: background 0.2s, border-color 0.2s, opacity 0.3s;
+}
+
+#hud-ammo-current {
+  font-size: 15px;
+  font-weight: 900;
+  min-width: 20px;
+  text-align: center;
+}
+
+#hud-ammo-sep {
+  color: #90a4ae;
+  font-size: 13px;
+}
+
+#hud-ammo-reserve {
+  font-size: 13px;
+  color: #78909c;
+  font-weight: 700;
+}
+
+#hud-ammo-reload {
+  font-size: 11px;
+  font-weight: 900;
+  color: #1565c0;
+  letter-spacing: 0.3px;
+  min-width: 0;
+}
+
+/* Low ammo — orange with subtle pulse */
+#hud-ammo.low-ammo {
+  background: #fff3e0;
+  border-color: #ffb74d;
+  box-shadow:
+    0 3px 0 #e65100,
+    0 4px 12px rgba(230, 81, 0, 0.25);
+  animation: ammo-pulse 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes ammo-pulse {
+  from { opacity: 1; }
+  to   { opacity: 0.65; }
+}
+
+/* Empty ammo — red */
+#hud-ammo.empty-ammo {
+  background: #ffebee;
+  border-color: #ef9a9a;
+  box-shadow:
+    0 3px 0 #c62828,
+    0 4px 12px rgba(198, 40, 40, 0.25);
+}
+
+/* Reloading — blue, spinner icon */
+#hud-ammo.reloading {
+  background: #e3f2fd;
+  border-color: #90caf9;
+  box-shadow:
+    0 3px 0 #1565c0,
+    0 4px 12px rgba(21, 101, 192, 0.2);
+  animation: none;
+  opacity: 0.85;
+}
+
 /* ── Hit marker ────────────────────────────────────────────────────────────── */
 #hit-marker {
   position: fixed;

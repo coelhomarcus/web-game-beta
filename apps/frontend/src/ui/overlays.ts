@@ -10,14 +10,6 @@ export function showHitMarker() {
   hitTimeout = setTimeout(() => hitMarker.classList.remove("active"), 120);
 }
 
-// Resume overlay
-const resumeOverlay = document.createElement("div");
-resumeOverlay.id = "resume-overlay";
-resumeOverlay.innerHTML =
-  '<div id="resume-card"><div id="resume-icon">🖱️</div><div id="resume-text">Clique para continuar</div></div>';
-resumeOverlay.style.display = "none";
-document.body.appendChild(resumeOverlay);
-
 // Damage overlay
 const damageOverlay = document.createElement("div");
 damageOverlay.id = "damage-overlay";

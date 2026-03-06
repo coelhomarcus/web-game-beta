@@ -7,6 +7,7 @@ import {
 import { handleShoot, startReload } from "./shooting";
 import { throwGrenade } from "./grenade";
 import { renderScoreboard } from "../ui/scoreboard";
+import { isChatOpen, openChat } from "../ui/chat";
 
 export const controls = new PointerLockControls(camera, document.body);
 
@@ -19,15 +20,14 @@ export function getGameStarted() { return gameStarted; }
 export function setGameStarted(v: boolean) { gameStarted = v; }
 
 const startScreen = document.getElementById("start-screen")!;
-const resumeOverlay = document.getElementById("resume-overlay") as HTMLElement;
 const scoreboard = document.getElementById("scoreboard")!;
 
-controls.addEventListener("lock", () => {
-  resumeOverlay.style.display = "none";
-});
 controls.addEventListener("unlock", () => {
-  if (isDead || !gameStarted) return;
-  resumeOverlay.style.display = "flex";
+  // Clear movement so player doesn't keep walking
+  setMoveForward(false);
+  setMoveBackward(false);
+  setMoveLeft(false);
+  setMoveRight(false);
 });
 
 const SUPPRESS_KEYS = new Set([
@@ -38,6 +38,12 @@ const SUPPRESS_KEYS = new Set([
 window.addEventListener("keydown", (e) => {
   if (SUPPRESS_KEYS.has(e.code)) {
     e.preventDefault();
+    return;
+  }
+  if (isChatOpen()) return; // chat input handles its own keys
+  if (e.code === "Enter" && gameStarted && !isDead) {
+    e.preventDefault();
+    openChat();
     return;
   }
   switch (e.code) {
@@ -57,6 +63,7 @@ window.addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("keyup", (e) => {
+  if (isChatOpen()) return;
   switch (e.code) {
     case "KeyW": setMoveForward(false); break;
     case "KeyA": setMoveLeft(false); break;
@@ -70,13 +77,12 @@ window.addEventListener("keyup", (e) => {
 });
 
 window.addEventListener("mousedown", (e) => {
-  if (e.button !== 0) return;
+  if (e.button !== 0 || isChatOpen()) return;
+  if (!controls.isLocked && gameStarted && !isDead) {
+    controls.lock();
+    return;
+  }
   handleShoot(isDead, controls);
-});
-
-resumeOverlay.addEventListener("mousedown", (e) => {
-  e.stopPropagation();
-  controls.lock();
 });
 
 export function lockAndStart() {

@@ -113,6 +113,19 @@ export function registerHandlers(io: Server, socket: Socket) {
         }
     });
 
+    socket.on('chat_message', (data: { message: string }) => {
+        if (players[socket.id]) {
+            const msg = (data.message || '').slice(0, 120).trim();
+            if (msg.length > 0) {
+                socket.broadcast.emit('chat_message', {
+                    name: players[socket.id].name,
+                    message: msg,
+                    id: socket.id
+                });
+            }
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log(`[Socket] Player disconnected: ${socket.id}`);
         delete players[socket.id];

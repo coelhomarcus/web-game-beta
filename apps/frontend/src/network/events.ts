@@ -14,6 +14,7 @@ import { explodeGrenade, spawnRemoteGrenade } from "../systems/grenade";
 import { updateHudHp, hudKillsVal } from "../ui/hud";
 import { allStats, setMyIdRef } from "../ui/scoreboard";
 import { flashDamage, showKillFeedEntry } from "../ui/overlays";
+import { addMessage } from "../ui/chat";
 
 let myId = "";
 let playerName = "";
@@ -159,5 +160,9 @@ export function setupSocketEvents() {
 
   socket.on("grenade_explode", (data: { position: { x: number; y: number; z: number } }) => {
     explodeGrenade(new THREE.Vector3(data.position.x, data.position.y, data.position.z));
+  });
+
+  socket.on("chat_message", (data: { name: string; message: string; id: string }) => {
+    addMessage(data.name, data.message, false);
   });
 }

@@ -50,6 +50,8 @@ export const WEAPONS: Record<string, WeaponDef> = {
   },
 };
 
+export const MAG_SIZE = WEAPONS.ar.magSize;
+
 // ─── Weapon state ─────────────────────────────────────────────────────────────
 let currentWeaponId: "ar" | "awp" = "ar";
 let ammo = WEAPONS.ar.magSize;

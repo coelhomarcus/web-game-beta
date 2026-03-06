@@ -49,4 +49,8 @@ export function updateHudAmmo(current: number, reloading: boolean) {
   hudAmmoEl.classList.toggle("empty-ammo", !reloading && current === 0);
 }
 
+export function updateHudWeapon(_w: { magSize: number }) {
+  hudAmmoCurrent.textContent = String(_w.magSize);
+}
+
 updateHudHp(100);

@@ -11,3 +11,4 @@ export const MAX_DAMAGE = 100;
 export const MIN_DAMAGE = 25;
 export const BULLET_DAMAGE = 25;
 export const RESPAWN_TIME = 3000;
+export const INVINCIBLE_TIME = 3000;

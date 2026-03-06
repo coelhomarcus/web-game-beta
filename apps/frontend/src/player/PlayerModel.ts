@@ -84,7 +84,48 @@ export function flashPlayerHit(id: string) {
   }, 150);
 }
 
+const blinkingPlayers: Record<string, { interval: number; toggle: boolean }> = {};
+
+const INVINCIBLE_MAT = new THREE.MeshStandardMaterial({
+  color: 0x66ccff,
+  emissive: 0x3399ff,
+  emissiveIntensity: 0.6,
+});
+
+export function startInvincibleBlink(id: string, duration: number) {
+  stopInvincibleBlink(id);
+  let toggle = false;
+  const interval = setInterval(() => {
+    const g = otherPlayers[id];
+    if (!g) { stopInvincibleBlink(id); return; }
+    const cap = g.children.find(
+      (c) => c instanceof THREE.Mesh && (c as THREE.Mesh).geometry.type === "CapsuleGeometry",
+    ) as THREE.Mesh | undefined;
+    if (!cap) return;
+    toggle = !toggle;
+    cap.material = toggle ? INVINCIBLE_MAT : (playerOriginalMaterial[id] ?? cap.material);
+  }, 150);
+  blinkingPlayers[id] = { interval: interval as unknown as number, toggle: false };
+  setTimeout(() => stopInvincibleBlink(id), duration);
+}
+
+function stopInvincibleBlink(id: string) {
+  const entry = blinkingPlayers[id];
+  if (entry != null) {
+    clearInterval(entry.interval);
+    delete blinkingPlayers[id];
+    const g = otherPlayers[id];
+    if (g) {
+      const cap = g.children.find(
+        (c) => c instanceof THREE.Mesh && (c as THREE.Mesh).geometry.type === "CapsuleGeometry",
+      ) as THREE.Mesh | undefined;
+      if (cap && playerOriginalMaterial[id]) cap.material = playerOriginalMaterial[id];
+    }
+  }
+}
+
 export function removeOtherPlayer(id: string) {
+  stopInvincibleBlink(id);
   if (otherPlayers[id]) {
     scene.remove(otherPlayers[id]);
     delete otherPlayers[id];

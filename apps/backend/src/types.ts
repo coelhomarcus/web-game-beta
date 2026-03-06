@@ -12,6 +12,7 @@ export interface PlayerState {
     color: string;
     hp: number;
     isDead: boolean;
+    isInvincible: boolean;
 }
 
 export interface BoxBounds {

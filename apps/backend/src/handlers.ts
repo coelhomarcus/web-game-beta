@@ -2,7 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { PlayerState, Vec3 } from './types';
 import { MAP_BOXES } from './map';
 import { resolveBoxCollision, getRandomSpawn } from './physics';
-import { MAX_PLAYERS, BLAST_RADIUS, MAX_DAMAGE, MIN_DAMAGE, BULLET_DAMAGE, RESPAWN_TIME } from './config';
+import { MAX_PLAYERS, BLAST_RADIUS, MAX_DAMAGE, MIN_DAMAGE, BULLET_DAMAGE, RESPAWN_TIME, INVINCIBLE_TIME } from './config';
 
 const players: Record<string, PlayerState> = {};
 
@@ -15,8 +15,14 @@ function scheduleRespawn(io: Server, id: string) {
         if (players[id]) {
             players[id].hp = 100;
             players[id].isDead = false;
+            players[id].isInvincible = true;
             players[id].position = getRandomSpawn();
             io.emit('player_respawned', players[id]);
+            setTimeout(() => {
+                if (players[id]) {
+                    players[id].isInvincible = false;
+                }
+            }, INVINCIBLE_TIME);
         }
     }, RESPAWN_TIME);
 }
@@ -45,7 +51,8 @@ export function registerHandlers(io: Server, socket: Socket) {
         rotation: { x: 0, y: 0, z: 0 },
         color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'),
         hp: 100,
-        isDead: false
+        isDead: false,
+        isInvincible: false
     };
 
     socket.emit('init', { id: socket.id, players });
@@ -81,7 +88,7 @@ export function registerHandlers(io: Server, socket: Socket) {
         io.emit('grenade_explode', { position: ep, throwerId: socket.id });
 
         for (const [id, target] of Object.entries(players)) {
-            if (target.isDead) continue;
+            if (target.isDead || target.isInvincible) continue;
             const dx = target.position.x - ep.x;
             const dy = target.position.y - ep.y;
             const dz = target.position.z - ep.z;
@@ -102,9 +109,8 @@ export function registerHandlers(io: Server, socket: Socket) {
 
     socket.on('hit_player', (data: { targetId: string; damage?: number }) => {
         const target = players[data.targetId];
-        if (target && !target.isDead) {
-            const dmg = Math.min(data.damage ?? BULLET_DAMAGE, MAX_DAMAGE);
-            target.hp -= dmg;
+        if (target && !target.isDead && !target.isInvincible) {
+            target.hp -= BULLET_DAMAGE;
 
             if (target.hp <= 0) {
                 killPlayer(io, target.id, socket.id);

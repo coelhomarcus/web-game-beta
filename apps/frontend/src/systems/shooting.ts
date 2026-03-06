@@ -50,6 +50,8 @@ export const WEAPONS: Record<string, WeaponDef> = {
   },
 };
 
+export const MAG_SIZE = WEAPONS.ar.magSize;
+
 // ─── Weapon state ─────────────────────────────────────────────────────────────
 let currentWeaponId: "ar" | "awp" = "ar";
 let ammo = WEAPONS.ar.magSize;
@@ -78,6 +80,7 @@ export function switchWeapon(id: "ar" | "awp") {
   fireCooldown = 0;
   updateHudAmmo(ammo, false);
   updateHudWeapon(WEAPONS[id]);
+  window.dispatchEvent(new CustomEvent("weapon-switched"));
 }
 
 // ─── Scope (AWP right-click) ──────────────────────────────────────────────────
@@ -85,6 +88,7 @@ export function enterScope() {
   if (currentWeaponId !== "awp" || isScoped) return;
   isScoped = true;
   showScope();
+  document.body.classList.add("scoped");
   camera.fov = 20;
   camera.updateProjectionMatrix();
 }
@@ -93,6 +97,7 @@ export function exitScope() {
   if (!isScoped) return;
   isScoped = false;
   hideScope();
+  document.body.classList.remove("scoped");
   camera.fov = 75;
   camera.updateProjectionMatrix();
 }

@@ -14,8 +14,14 @@ function scheduleRespawn(io, id) {
         if (players[id]) {
             players[id].hp = 100;
             players[id].isDead = false;
+            players[id].isInvincible = true;
             players[id].position = (0, physics_1.getRandomSpawn)();
             io.emit('player_respawned', players[id]);
+            setTimeout(() => {
+                if (players[id]) {
+                    players[id].isInvincible = false;
+                }
+            }, config_1.INVINCIBLE_TIME);
         }
     }, config_1.RESPAWN_TIME);
 }
@@ -40,7 +46,8 @@ function registerHandlers(io, socket) {
         rotation: { x: 0, y: 0, z: 0 },
         color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'),
         hp: 100,
-        isDead: false
+        isDead: false,
+        isInvincible: false
     };
     socket.emit('init', { id: socket.id, players });
     socket.broadcast.emit('player_joined', players[socket.id]);
@@ -70,7 +77,7 @@ function registerHandlers(io, socket) {
         const ep = data.explosionPos;
         io.emit('grenade_explode', { position: ep, throwerId: socket.id });
         for (const [id, target] of Object.entries(players)) {
-            if (target.isDead)
+            if (target.isDead || target.isInvincible)
                 continue;
             const dx = target.position.x - ep.x;
             const dy = target.position.y - ep.y;
@@ -90,14 +97,27 @@ function registerHandlers(io, socket) {
         }
     });
     socket.on('hit_player', (data) => {
+        var _a;
         const target = players[data.targetId];
-        if (target && !target.isDead) {
+        if (target && !target.isDead && !target.isInvincible) {
             target.hp -= config_1.BULLET_DAMAGE;
             if (target.hp <= 0) {
                 killPlayer(io, target.id, socket.id);
             }
             else {
                 io.emit('player_hit', { id: target.id, hp: target.hp });
+            }
+        }
+    });
+    socket.on('chat_message', (data) => {
+        if (players[socket.id]) {
+            const msg = (data.message || '').slice(0, 120).trim();
+            if (msg.length > 0) {
+                socket.broadcast.emit('chat_message', {
+                    name: players[socket.id].name,
+                    message: msg,
+                    id: socket.id
+                });
             }
         }
     });

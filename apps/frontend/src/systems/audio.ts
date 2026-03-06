@@ -17,37 +17,40 @@ export function playShootSound() {
   osc.stop(audioCtx.currentTime + 0.1);
 }
 
+/** AWP — deep, percussive bang + high-freq crack */
 export function playAwpSound() {
   if (audioCtx.state === "suspended") audioCtx.resume();
-  // Deep, sharp sniper crack
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(90, audioCtx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
-  gain.gain.setValueAtTime(0.55, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.18);
-  // High-frequency crack layer
+  const t = audioCtx.currentTime;
+
+  // Low boom
+  const boom = audioCtx.createOscillator();
+  const boomGain = audioCtx.createGain();
+  boom.type = "sine";
+  boom.frequency.setValueAtTime(80, t);
+  boom.frequency.exponentialRampToValueAtTime(20, t + 0.35);
+  boomGain.gain.setValueAtTime(0.9, t);
+  boomGain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+  boom.connect(boomGain);
+  boomGain.connect(audioCtx.destination);
+  boom.start(t);
+  boom.stop(t + 0.35);
+
+  // High-frequency crack
   const crack = audioCtx.createOscillator();
   const crackGain = audioCtx.createGain();
-  crack.type = "square";
-  crack.frequency.setValueAtTime(1800, audioCtx.currentTime);
-  crack.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.06);
-  crackGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-  crackGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+  crack.type = "sawtooth";
+  crack.frequency.setValueAtTime(1800, t);
+  crack.frequency.exponentialRampToValueAtTime(200, t + 0.08);
+  crackGain.gain.setValueAtTime(0.5, t);
+  crackGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
   crack.connect(crackGain);
   crackGain.connect(audioCtx.destination);
-  crack.start();
-  crack.stop(audioCtx.currentTime + 0.06);
+  crack.start(t);
+  crack.stop(t + 0.08);
 }
 
 export function playReloadSound() {
   if (audioCtx.state === "suspended") audioCtx.resume();
-  // Two short mechanical clicks simulate a reload
   [0, 0.18].forEach((offset) => {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -62,4 +65,3 @@ export function playReloadSound() {
     osc.stop(audioCtx.currentTime + offset + 0.08);
   });
 }
-

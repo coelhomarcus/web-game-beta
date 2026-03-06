@@ -1,10 +1,10 @@
 import * as THREE from "three";
 import { socket } from "./socket";
 import type { PlayerState } from "../types";
-import { PLAYER_HEIGHT } from "../config";
+import { PLAYER_HEIGHT, INVINCIBLE_TIME } from "../config";
 import { camera } from "../scene/setup";
 import {
-  otherPlayers, addOtherPlayer, removeOtherPlayer, flashPlayerHit,
+  otherPlayers, addOtherPlayer, removeOtherPlayer, flashPlayerHit, startInvincibleBlink,
 } from "../player/PlayerModel";
 import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
@@ -13,7 +13,7 @@ import { createVisualBullet } from "../systems/shooting";
 import { explodeGrenade, spawnRemoteGrenade } from "../systems/grenade";
 import { updateHudHp, hudKillsVal } from "../ui/hud";
 import { allStats, setMyIdRef } from "../ui/scoreboard";
-import { flashDamage, showKillFeedEntry } from "../ui/overlays";
+import { flashDamage, showKillFeedEntry, startLocalInvincibleBlink } from "../ui/overlays";
 import { addMessage } from "../ui/chat";
 
 let myId = "";
@@ -128,9 +128,11 @@ export function setupSocketEvents() {
       updateHudHp(100);
       deathScreen.style.display = "none";
       controls.lock();
+      startLocalInvincibleBlink(INVINCIBLE_TIME);
     } else if (otherPlayers[p.id]) {
       otherPlayers[p.id].position.set(p.position.x, p.position.y, p.position.z);
       otherPlayers[p.id].visible = true;
+      startInvincibleBlink(p.id, INVINCIBLE_TIME);
     }
   });
 

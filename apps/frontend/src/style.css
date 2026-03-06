@@ -364,6 +364,11 @@ html {
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 100;
+  transition: opacity 0.1s;
+}
+
+body.scoped #crosshair {
+  opacity: 0;
 }
 
 #crosshair::before,
@@ -933,3 +938,117 @@ html {
   width: 100%;
   height: 100%;
 }
+
+/* ── Weapon selector HUD ───────────────────────────────────────────────────── */
+#hud-weapon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: #fff;
+  border: 3px solid #e0e0e0;
+  border-radius: 14px;
+  padding: 6px 12px;
+  box-shadow:
+    0 3px 0 #bdbdbd,
+    0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#hud-weapon-name {
+  font-size: 13px;
+  font-weight: 900;
+  color: #1a1a2e;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* AWP name — cyan accent */
+#hud-weapon-name[data-weapon="awp"] {
+  color: #0097a7;
+}
+
+#hud-weapon-keys {
+  display: flex;
+  gap: 5px;
+}
+
+.wkey {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 2px solid #e0e7ef;
+  background: #f0f4f8;
+  color: #90a4ae;
+  letter-spacing: 0.3px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.wkey.active {
+  background: #1e88e5;
+  border-color: #1565c0;
+  color: #fff;
+}
+
+#wkey-2.active {
+  background: #0097a7;
+  border-color: #006064;
+}
+
+/* AWP ammo tint (cyan) */
+#hud-ammo.awp-ammo {
+  background: #e0f7fa;
+  border-color: #80deea;
+  box-shadow:
+    0 3px 0 #006064,
+    0 4px 12px rgba(0, 151, 167, 0.2);
+}
+
+/* ── AWP Scope overlay ─────────────────────────────────────────────────────── */
+#scope-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+/* Black panels that create the "tube" look */
+.scope-lens-shade {
+  position: absolute;
+  background: #000;
+}
+.scope-top    { top: 0; left: 0; right: 0; bottom: calc(50% + 38vmin); }
+.scope-bottom { bottom: 0; left: 0; right: 0; top: calc(50% + 38vmin); }
+.scope-left   { top: calc(50% - 38vmin); bottom: calc(50% - 38vmin); left: 0; right: calc(50% + 38vmin); }
+.scope-right  { top: calc(50% - 38vmin); bottom: calc(50% - 38vmin); right: 0; left: calc(50% + 38vmin); }
+
+/* Circular scope ring */
+.scope-ring {
+  position: absolute;
+  width: 76vmin;
+  height: 76vmin;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 200, 220, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.9),
+    inset 0 0 60px rgba(0, 0, 0, 0.25);
+}
+
+/* Crosshair lines */
+.scope-cross {
+  position: absolute;
+  background: rgba(0, 200, 220, 0.75);
+}
+.scope-h {
+  width: 76vmin;
+  height: 1px;
+}
+.scope-v {
+  height: 76vmin;
+  width: 1px;
+}
+

@@ -21,6 +21,7 @@ import {
   getLocalCorpseGroup,
 } from "./player/PlayerModel";
 import { updateAbilityItems } from "./systems/abilities";
+import { updateAmmoBoxes } from "./systems/ammoBoxes";
 import { removeBobOffset, applyBobOffset } from "./systems/headBob";
 import { updateStats } from "./ui/stats";
 
@@ -98,6 +99,7 @@ export function animate() {
   updateRagdolls(delta);
   updateFlings(delta);
   updateAbilityItems(delta);
+  updateAmmoBoxes(delta);
   updatePlayerAnimations(delta);
   updateFloatingDamageNumbers(delta);
 

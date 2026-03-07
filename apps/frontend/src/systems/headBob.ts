@@ -97,19 +97,27 @@ export function applyBobOffset(delta: number, active: boolean): void {
     ? Math.sin(bobTimer * 0.5) * BOB_ROLL_AMPLITUDE
     : 0;
 
-  const lerp = Math.min(1, delta * LERP_SPEED);
-  bobY += (targetY - bobY) * lerp;
-  bobRoll += (targetRoll - bobRoll) * lerp;
+  if (isSliding) {
+    // Snap bob to zero instantly so it doesn't fight the slide height offset
+    bobY = 0;
+    bobRoll = 0;
+  } else {
+    const lerp = Math.min(1, delta * LERP_SPEED);
+    bobY += (targetY - bobY) * lerp;
+    bobRoll += (targetRoll - bobRoll) * lerp;
+  }
 
   // Apply vertical bob to the camera
   camera.position.y += bobY;
 
-  // Apply screen shake
-  if (shakeIntensity > 0.001) {
+  // Apply screen shake (skip during slide — the height lerp fights the offset)
+  if (shakeIntensity > 0.001 && !isSliding) {
     shakeOffsetX = (Math.random() * 2 - 1) * shakeIntensity;
     shakeOffsetY = (Math.random() * 2 - 1) * shakeIntensity;
     camera.position.x += shakeOffsetX;
     camera.position.y += shakeOffsetY;
+    shakeIntensity *= Math.max(0, 1 - SHAKE_DECAY * delta);
+  } else if (isSliding) {
     shakeIntensity *= Math.max(0, 1 - SHAKE_DECAY * delta);
   } else {
     shakeIntensity = 0;

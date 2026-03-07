@@ -196,15 +196,24 @@ export function updatePhysics(
   if (Math.abs(_slideHeightOffset - targetOffset) < 0.001)
     _slideHeightOffset = targetOffset;
 
-  isOnGround = false;
-  velocity.y += GRAVITY * delta;
-  camera.position.y += velocity.y * delta;
   const groundHeight = PLAYER_HEIGHT - _slideHeightOffset;
-  if (camera.position.y <= groundHeight) {
+
+  if (isSliding) {
+    // Pin camera to the sliding ground so gravity doesn't cause bouncing
     camera.position.y = groundHeight;
     velocity.y = 0;
     isOnGround = true;
     _jumpsUsed = 0;
+  } else {
+    isOnGround = false;
+    velocity.y += GRAVITY * delta;
+    camera.position.y += velocity.y * delta;
+    if (camera.position.y <= groundHeight) {
+      camera.position.y = groundHeight;
+      velocity.y = 0;
+      isOnGround = true;
+      _jumpsUsed = 0;
+    }
   }
 
   controls.moveRight(-velocity.x * delta);

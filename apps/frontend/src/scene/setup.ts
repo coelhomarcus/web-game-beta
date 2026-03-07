@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import { PLAYER_HEIGHT } from "../config";
 
+
 export const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-export const sceneFog = new THREE.Fog(0x87ceeb, 0, 60);
+scene.background = new THREE.Color(0x36c5f4);
+export const sceneFog = new THREE.Fog(0x36c5f4, 80, 250);
 scene.fog = sceneFog;
 
 export const camera = new THREE.PerspectiveCamera(
@@ -18,17 +19,18 @@ export const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
 sun.position.set(20, 50, 20);
 sun.castShadow = true;
-sun.shadow.mapSize.width = sun.shadow.mapSize.height = 2048;
+sun.shadow.mapSize.width = sun.shadow.mapSize.height = 1024;
 sun.shadow.camera.near = 0.5;
 sun.shadow.camera.far = 100;
 sun.shadow.camera.left = -50;
 sun.shadow.camera.right = 50;
 sun.shadow.camera.top = 50;
 sun.shadow.camera.bottom = -50;
+sun.shadow.bias = -0.002;
 scene.add(sun);
 
 window.addEventListener("resize", () => {

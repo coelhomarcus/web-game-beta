@@ -16,6 +16,7 @@ import {
 import { showScope, hideScope } from "../ui/overlays";
 import { controls } from "./input";
 import { addRecoil, updateRecoil } from "./cameraLook";
+import { isSliding } from "./physics";
 import { getNormalSensitivity, getScopeSensitivity } from "../ui/settings";
 import { triggerScreenShake, triggerWeaponRecoil } from "./headBob";
 
@@ -42,7 +43,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     reloadTime: 2.0,
     fireRate: 0.09,
     damage: 15,
-    bulletColor: 0xffe000,
+    bulletColor: 0xf3a833,
     bulletSpeed: BULLET_SPEED,
     bulletMaxLife: BULLET_MAX_LIFETIME,
   },
@@ -54,7 +55,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     reloadTime: 3.2,
     fireRate: 1.1, // bolt-action delay
     damage: 60,
-    bulletColor: 0x00ffff,
+    bulletColor: 0x6dead6,
     bulletSpeed: 800,
     bulletMaxLife: 3.0,
   },
@@ -159,8 +160,8 @@ export function exitScope() {
   camera.updateProjectionMatrix();
   controls.pointerSpeed = getNormalSensitivity();
   // Restore normal fog
-  sceneFog.near = 0;
-  sceneFog.far = 60;
+  sceneFog.near = 80;
+  sceneFog.far = 250;
   window.dispatchEvent(
     new CustomEvent("scope-changed", { detail: { scoped: false } }),
   );
@@ -196,7 +197,7 @@ export function updateAmmo(delta: number) {
   }
 
   // Camera recoil recovery
-  updateRecoil(delta, _mouseHeld && currentWeaponId === "ar" && !isReloading);
+  updateRecoil(delta, _mouseHeld && currentWeaponId === "ar" && !isReloading && !isSliding);
 
   if (!isReloading) return;
   reloadTimer -= delta;
@@ -215,6 +216,21 @@ export function updateAmmo(delta: number) {
       updateHudAmmo(ammo, false, arReserve);
     }
   }
+}
+
+/** Refill all reserve ammo to max. Returns true if anything was refilled. */
+export function refillAmmo(): boolean {
+  const arFull = arReserve >= AR_RESERVE_START;
+  const awpFull = awpReserve >= AWP_RESERVE_START;
+  if (arFull && awpFull) return false;
+  arReserve = AR_RESERVE_START;
+  awpReserve = AWP_RESERVE_START;
+  if (currentWeaponId === "awp") {
+    updateHudAmmo(ammo, isReloading, awpReserve);
+  } else {
+    updateHudAmmo(ammo, isReloading, arReserve);
+  }
+  return true;
 }
 
 // ─── Bullets ──────────────────────────────────────────────────────────────────
@@ -243,7 +259,7 @@ function getBulletMat(color: number): THREE.MeshBasicMaterial {
 export function createVisualBullet(
   origin: THREE.Vector3,
   dir: THREE.Vector3,
-  color = 0xffe000,
+  color = 0xf3a833,
   speed = BULLET_SPEED,
   maxLife = BULLET_MAX_LIFETIME,
 ) {
@@ -311,19 +327,23 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
     updateHudAmmo(ammo, false, arReserve);
     if (ammo === 0) startReload();
     // CS:GO-style recoil kick
-    addRecoil();
+    if (!isSliding) addRecoil();
   }
 
   // AWP: exit scope on shoot
   if (currentWeaponId === "awp") {
     playAwpSound();
     if (isScoped) exitScope();
-    triggerScreenShake(0.5);
-    triggerWeaponRecoil(0.12);
+    if (!isSliding) {
+      triggerScreenShake(0.5);
+      triggerWeaponRecoil(0.12);
+    }
   } else {
     playShootSound();
-    triggerScreenShake(0.045);
-    triggerWeaponRecoil(0.04);
+    if (!isSliding) {
+      triggerScreenShake(0.045);
+      triggerWeaponRecoil(0.04);
+    }
   }
 
   raycaster.setFromCamera(_rayCenter, camera);

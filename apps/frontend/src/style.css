@@ -29,7 +29,7 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(200, 210, 230, 0.55);
+  background: rgba(200, 210, 230, 0.25);
   backdrop-filter: blur(8px);
 }
 
@@ -65,6 +65,7 @@ html {
   font-size: 20px;
   font-weight: 900;
   letter-spacing: 0.5px;
+  text-align: center;
 }
 
 .kirby-header-tabs {
@@ -1567,9 +1568,9 @@ body.awp #crosshair {
   transform: translateX(-50%);
   z-index: 300;
   padding: 4px 14px;
-  border-radius: 6px;
+  border-radius: 2px;
   background: rgba(0, 0, 0, 0.55);
-  color: #e0e0e0;
+  color: #91db69;
   font-family: "Rajdhani", monospace;
   font-size: 13px;
   font-weight: 600;
@@ -1764,13 +1765,8 @@ body.awp #crosshair {
 
 #face-crop-canvas {
   border-radius: 10px;
-  cursor: grab;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   touch-action: none;
-}
-
-#face-crop-canvas:active {
-  cursor: grabbing;
 }
 
 .face-crop-zoom-row {

@@ -37,7 +37,7 @@ export function cleanupRemoteGrenades() {
 
 const grenadeGeo = new THREE.SphereGeometry(0.12, 8, 8);
 const grenadeMat = new THREE.MeshStandardMaterial({
-  color: 0x2d5a1b,
+  color: 0x006554,
   roughness: 0.6,
 });
 
@@ -95,8 +95,8 @@ export function explodeGrenade(pos: THREE.Vector3) {
   }
 
   const flashGeo = new THREE.SphereGeometry(0.5, 8, 8);
-  const flashMat = new THREE.MeshBasicMaterial({
-    color: 0xff8800,
+  const flashMat = new THREE.MeshStandardMaterial({
+    color: 0xe98537,
     transparent: true,
     opacity: 0.9,
   });
@@ -118,7 +118,7 @@ export function explodeGrenade(pos: THREE.Vector3) {
 
   const debrisGeo = new THREE.SphereGeometry(0.06, 4, 4);
   for (let i = 0; i < 16; i++) {
-    const debrisMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+    const debrisMat = new THREE.MeshStandardMaterial({ color: 0x10121c });
     const d = new THREE.Mesh(debrisGeo, debrisMat);
     d.position.copy(pos);
     const dir = new THREE.Vector3(

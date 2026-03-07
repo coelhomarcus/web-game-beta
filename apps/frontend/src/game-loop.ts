@@ -7,6 +7,7 @@ import { updateBullets, updateAmmo } from "./systems/shooting";
 import { updateGrenade } from "./systems/grenade";
 import { updateMinimap } from "./ui/minimap";
 import { getMyId } from "./network/events";
+import { updateRagdolls } from "./player/PlayerModel";
 
 let prevTime = performance.now();
 
@@ -34,6 +35,7 @@ export function animate() {
   updateBullets(delta);
   updateAmmo(delta);
   updateGrenade(delta);
+  updateRagdolls(delta);
 
   updateMinimap();
   renderer.render(scene, camera);

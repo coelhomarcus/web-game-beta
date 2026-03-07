@@ -11,7 +11,7 @@ import { controls, setIsDead } from "../systems/input";
 import { velocity } from "../systems/physics";
 import { createVisualBullet } from "../systems/shooting";
 import { explodeGrenade, spawnRemoteGrenade, cleanupRemoteGrenades } from "../systems/grenade";
-import { updateHudHp, hudKillsVal } from "../ui/hud";
+import { updateHudHp } from "../ui/hud";
 import { allStats, setMyIdRef } from "../ui/scoreboard";
 import { flashDamage, showKillFeedEntry, startLocalInvincibleBlink } from "../ui/overlays";
 import { addMessage } from "../ui/chat";
@@ -95,7 +95,7 @@ export function setupSocketEvents() {
     } else flashPlayerHit(data.id);
   });
 
-  socket.on("player_killed", (data: { victim: string; killer: string; assist?: string }) => {
+  socket.on("player_killed", (data: { victim: string; killer: string; assist?: string; weapon?: string }) => {
     if (allStats[data.killer]) allStats[data.killer].kills++;
     if (allStats[data.victim]) allStats[data.victim].deaths++;
     if (data.assist && allStats[data.assist]) allStats[data.assist].assists++;
@@ -104,7 +104,7 @@ export function setupSocketEvents() {
     const victimName = allStats[data.victim]?.name ?? "Desconhecido";
     const assistName = data.assist ? (allStats[data.assist]?.name ?? undefined) : undefined;
 
-    showKillFeedEntry(killerName, victimName, data.killer === myId, assistName);
+    showKillFeedEntry(killerName, victimName, data.killer === myId, data.weapon ?? 'ar', assistName);
 
     if (data.victim === myId) {
       setIsDead(true);
@@ -113,10 +113,6 @@ export function setupSocketEvents() {
       deathScreen.style.display = "flex";
     } else {
       if (otherPlayers[data.victim]) otherPlayers[data.victim].visible = false;
-      if (data.killer === myId) {
-        const kills = allStats[myId]?.kills ?? 0;
-        hudKillsVal.textContent = String(kills);
-      }
     }
   });
 

@@ -1,5 +1,5 @@
 /* ── Base ─────────────────────────────────────────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap");
 
 * {
   box-sizing: border-box;
@@ -245,21 +245,21 @@ html {
   margin: 0;
 }
 
-/* ── Scoreboard ────────────────────────────────────────────────────────────── */
+/* ── Scoreboard — Valorant dark theme ─────────────────────────────────────── */
 #scoreboard {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -54%);
-  min-width: 500px;
+  min-width: 540px;
   z-index: 200;
-  background: #ffffff;
-  border: 4px solid #e0e0e0;
-  border-radius: 20px;
-  padding: 0 0 16px;
+  background: rgba(8, 12, 22, 0.97);
+  border: 1px solid rgba(255, 70, 85, 0.2);
+  border-radius: 4px;
+  padding: 0 0 12px;
   box-shadow:
-    0 6px 0 #bdbdbd,
-    0 10px 40px rgba(0, 0, 0, 0.25);
+    0 12px 48px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
   opacity: 0;
   pointer-events: none;
   transition:
@@ -279,38 +279,39 @@ html {
   align-items: center;
   gap: 8px;
   justify-content: center;
-  background: #1e88e5;
-  padding: 14px 24px;
-  margin-bottom: 4px;
+  background: #ff4655;
+  padding: 12px 24px;
+  margin-bottom: 0;
 }
 
 #scoreboard-icon {
-  font-size: 20px;
+  display: none;
 }
 
 #scoreboard-title {
-  font-size: 16px;
-  font-weight: 900;
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
   color: #fff;
-  letter-spacing: 1px;
+  letter-spacing: 4px;
   text-transform: uppercase;
 }
 
 #scoreboard table {
   width: 100%;
   border-collapse: collapse;
-  padding: 0 16px;
 }
 
 #scoreboard th {
+  font-family: "Rajdhani", "Nunito", sans-serif;
   font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 1.5px;
+  font-weight: 700;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  color: #90a4ae;
-  padding: 10px 20px 6px;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 10px 20px 8px;
   text-align: left;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 #scoreboard th:not(:first-child) {
@@ -319,10 +320,11 @@ html {
 
 #scoreboard td {
   padding: 11px 20px;
-  color: #37474f;
-  font-size: 14px;
-  font-weight: 700;
-  border-bottom: 1px solid #f5f5f5;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 #scoreboard td:not(:first-child) {
@@ -334,36 +336,41 @@ html {
 }
 
 #scoreboard tr.my-row td {
-  color: #1565c0;
-  background: #e3f2fd;
-  font-weight: 800;
+  color: #fff;
+  background: rgba(255, 70, 85, 0.08);
+  font-weight: 700;
+}
+
+#scoreboard tr.my-row td:first-child {
+  border-left: 2px solid #ff4655;
 }
 
 #scoreboard tr:not(.my-row):hover td {
-  background: #fafafa;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .player-dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   margin-right: 8px;
   vertical-align: middle;
-  border: 2px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
 }
 
-/* ── Crosshair ─────────────────────────────────────────────────────────────── */
+/* ── Crosshair — Valorant 4-bar style ─────────────────────────────────────── */
 #crosshair {
   position: fixed;
   top: 50%;
   left: 50%;
-  width: 16px;
-  height: 16px;
+  width: 0;
+  height: 0;
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 100;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
   transition: opacity 0.1s;
 }
 
@@ -371,230 +378,251 @@ body.scoped #crosshair {
   opacity: 0;
 }
 
-#crosshair::before,
+/* Left + right horizontal bars */
+#crosshair::before {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.95);
+  top: -1px;
+  left: 5px;
+  box-shadow: -18px 0 0 rgba(255, 255, 255, 0.95);
+}
+
+/* Top + bottom vertical bars */
 #crosshair::after {
   content: "";
   position: absolute;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 2px;
-}
-
-#crosshair::before {
-  /* horizontal bar */
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  transform: translateY(-50%);
-}
-
-#crosshair::after {
-  /* vertical bar */
-  left: 50%;
-  top: 0;
   width: 2px;
-  height: 100%;
-  transform: translateX(-50%);
+  height: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  left: -1px;
+  top: 5px;
+  box-shadow: 0 -18px 0 rgba(255, 255, 255, 0.95);
 }
 
-/* ── HUD ───────────────────────────────────────────────────────────────────── */
+/* ── HUD — Valorant layout ─────────────────────────────────────────────────── */
 #hud {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 108px;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 28px 18px;
   pointer-events: none;
   z-index: 100;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
 }
 
-/* HP pill */
+/* ── Left panel: HP + Abilities ─── */
+#hud-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
 #hud-hp {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #ffffff;
-  border: 3px solid #e0e0e0;
-  border-radius: 50px;
-  padding: 6px 14px 6px 10px;
-  box-shadow:
-    0 3px 0 #bdbdbd,
-    0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-#hud-hp-label {
-  font-size: 13px;
-  font-weight: 900;
-  color: #546e7a;
-  letter-spacing: 0.5px;
-}
-
-/* heart icon via pseudo */
-#hud-hp-label::before {
-  content: "❤️ ";
-  font-size: 14px;
+  flex-direction: column;
+  gap: 5px;
 }
 
 #hud-hp-bar-bg {
-  width: 120px;
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 10px;
+  width: 150px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
   overflow: hidden;
-  border: 2px solid #bdbdbd;
 }
 
 #hud-hp-bar {
   height: 100%;
   width: 100%;
-  background: #00c853;
-  border-radius: 10px;
+  background: #4ade80;
+  border-radius: 2px;
   transition:
     width 0.25s,
     background 0.3s;
 }
 
-#hud-hp-value {
-  font-size: 14px;
-  font-weight: 900;
-  color: #37474f;
-  min-width: 26px;
-  text-align: right;
-}
-
-/* Kill counter pill */
-#hud-kills {
+#hud-hp-bottom {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #ffffff;
-  border: 3px solid #e0e0e0;
-  border-radius: 50px;
-  padding: 6px 16px 6px 12px;
-  box-shadow:
-    0 3px 0 #bdbdbd,
-    0 4px 12px rgba(0, 0, 0, 0.15);
-  font-size: 14px;
-  font-weight: 900;
-  color: #37474f;
+  align-items: baseline;
+  gap: 7px;
 }
 
-#hud-kills::before {
-  content: "☠";
-  font-size: 15px;
-  color: #e53935;
+#hud-hp-value {
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -1px;
+  transition: color 0.3s;
 }
 
-/* Grenade pill */
+#hud-hp-label {
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Abilities row */
+#hud-abilities {
+  display: flex;
+  gap: 5px;
+}
+
 #hud-grenade {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  background: #fff8e1;
-  border: 3px solid #ffd54f;
-  border-radius: 50px;
-  padding: 6px 14px 6px 10px;
-  box-shadow:
-    0 3px 0 #fbc02d,
-    0 4px 12px rgba(255, 193, 7, 0.2);
-  font-size: 14px;
-  font-weight: 900;
-  color: #37474f;
-  transition: opacity 0.3s;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  gap: 1px;
+  transition:
+    opacity 0.3s,
+    background 0.2s;
+}
+
+#hud-grenade-icon {
+  font-size: 18px;
+  line-height: 1;
 }
 
 #hud-grenade-label {
-  font-size: 12px;
-  font-weight: 900;
-  color: #795548;
-  letter-spacing: 0.5px;
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 #hud-grenade-cd {
-  font-size: 12px;
-  font-weight: 900;
-  color: #e65100;
-  min-width: 18px;
-}
-
-/* Ammo pill */
-#hud-ammo {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #e8f5e9;
-  border: 3px solid #a5d6a7;
-  border-radius: 50px;
-  padding: 6px 14px 6px 10px;
-  box-shadow:
-    0 3px 0 #66bb6a,
-    0 4px 12px rgba(76, 175, 80, 0.2);
-  font-size: 14px;
-  font-weight: 900;
-  color: #37474f;
-  transition: background 0.2s, border-color 0.2s, opacity 0.3s;
-}
-
-#hud-ammo-current {
-  font-size: 15px;
-  font-weight: 900;
-  min-width: 20px;
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fbbf24;
+  min-width: 22px;
   text-align: center;
 }
 
+/* ── Right panel: Weapon + Ammo ─── */
+#hud-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+#hud-ammo {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  transition: opacity 0.3s;
+}
+
+#hud-ammo-current {
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 54px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -1px;
+  min-width: 54px;
+  text-align: right;
+  transition: color 0.3s;
+}
+
 #hud-ammo-sep {
-  color: #90a4ae;
-  font-size: 13px;
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.25);
+  font-weight: 400;
+  padding-bottom: 4px;
 }
 
 #hud-ammo-reserve {
-  font-size: 13px;
-  color: #78909c;
-  font-weight: 700;
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.38);
+  font-weight: 500;
+  padding-bottom: 2px;
 }
 
-#hud-ammo-reload {
-  font-size: 11px;
-  font-weight: 900;
-  color: #1565c0;
-  letter-spacing: 0.3px;
-  min-width: 0;
+/* ── Reload ring — animated circle around the crosshair ─────────────────────── */
+#reload-ring {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  pointer-events: none;
+  z-index: 105;
+  opacity: 0;
+  transition: opacity 0.1s;
 }
 
-/* Low ammo — orange with subtle pulse */
-#hud-ammo.low-ammo {
-  background: #fff3e0;
-  border-color: #ffb74d;
-  box-shadow:
-    0 3px 0 #e65100,
-    0 4px 12px rgba(230, 81, 0, 0.25);
+#reload-ring.active {
+  opacity: 1;
+}
+
+#reload-ring-circle {
+  stroke-dashoffset: 150.8;
+}
+
+#reload-ring.active #reload-ring-circle {
+  animation: reload-fill var(--reload-dur, 2s) linear forwards;
+}
+
+@keyframes reload-fill {
+  from { stroke-dashoffset: 150.8; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* Low ammo — yellow pulse */
+#hud-ammo.low-ammo #hud-ammo-current {
+  color: #fbbf24;
   animation: ammo-pulse 0.7s ease-in-out infinite alternate;
 }
 
 @keyframes ammo-pulse {
-  from { opacity: 1; }
-  to   { opacity: 0.65; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.5;
+  }
 }
 
 /* Empty ammo — red */
-#hud-ammo.empty-ammo {
-  background: #ffebee;
-  border-color: #ef9a9a;
-  box-shadow:
-    0 3px 0 #c62828,
-    0 4px 12px rgba(198, 40, 40, 0.25);
+#hud-ammo.empty-ammo #hud-ammo-current {
+  color: #ff4655;
 }
 
-/* Reloading — blue, spinner icon */
+/* Reloading */
 #hud-ammo.reloading {
-  background: #e3f2fd;
-  border-color: #90caf9;
-  box-shadow:
-    0 3px 0 #1565c0,
-    0 4px 12px rgba(21, 101, 192, 0.2);
+  opacity: 0.55;
   animation: none;
-  opacity: 0.85;
+}
+
+/* AWP — cyan tint */
+#hud-ammo.awp-ammo #hud-ammo-current {
+  color: #67e8f9;
 }
 
 /* ── Hit marker ────────────────────────────────────────────────────────────── */
@@ -702,102 +730,101 @@ body.scoped #crosshair {
   height: 76vmin;
   transform: translate(-50%, -50%);
   background:
-    linear-gradient(rgba(150, 200, 150, 0.75) 0%, rgba(150, 200, 150, 0.75) 100%) center / 1px 100% no-repeat,
-    linear-gradient(rgba(150, 200, 150, 0.75) 0%, rgba(150, 200, 150, 0.75) 100%) center / 100% 1px no-repeat;
+    linear-gradient(
+        rgba(150, 200, 150, 0.75) 0%,
+        rgba(150, 200, 150, 0.75) 100%
+      )
+      center / 1px 100% no-repeat,
+    linear-gradient(
+        rgba(150, 200, 150, 0.75) 0%,
+        rgba(150, 200, 150, 0.75) 100%
+      )
+      center / 100% 1px no-repeat;
 }
 
-/* ── Weapon name in HUD ─────────────────────────────────────────────────────── */
-#hud-weapon-name {
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  color: #b0bec5;
-  text-transform: uppercase;
-  margin-right: 6px;
-}
-
-#hud-ammo[data-weapon="awp"] #hud-weapon-name {
-  color: #80cbc4;
-}
-
-/* ── Kill feed ──────────────────────────────────────────────────────────────── */
+/* ── Kill feed ── CS:GO style ─────────────────────────────────────────────── */
 #kill-feed {
   position: fixed;
-  top: 16px;
+  top: 192px;
   right: 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 3px;
   pointer-events: none;
   z-index: 100;
 }
 
 .kill-feed-item {
-  background: #ffffff;
-  border: 2px solid #e0e0e0;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 5px 12px;
-  border-radius: 50px;
-  opacity: 1;
-  transition: opacity 0.5s;
   display: flex;
   align-items: center;
-  gap: 5px;
-  box-shadow:
-    0 2px 0 #bdbdbd,
-    0 3px 8px rgba(0, 0, 0, 0.12);
+  gap: 0;
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid rgba(180, 180, 180, 0.18);
+  border-right: 2px solid rgba(180, 180, 180, 0.35);
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 8px 4px 10px;
+  border-radius: 1px;
+  opacity: 1;
+  transition: opacity 0.5s;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.2px;
 }
 
 .kill-feed-item.my-kill {
-  border-color: #ffd600;
-  background: #fffde7;
-  box-shadow:
-    0 2px 0 #f9a825,
-    0 3px 8px rgba(255, 214, 0, 0.3);
+  background: rgba(0, 0, 0, 0.82);
+  border-color: #9b2226;
+  border-right-color: #e63946;
+  box-shadow: 0 1px 8px rgba(200, 30, 30, 0.35);
 }
 
 .kf-killer {
-  color: #1a237e;
-  font-weight: 900;
+  color: #7ec8e3;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .kill-feed-item.my-kill .kf-killer {
-  color: #f57f17;
+  color: #90e0ef;
 }
 
-.kf-icon {
-  color: #e53935;
-  font-size: 12px;
-  line-height: 1;
+.kf-weapon-icon {
+  width: 52px;
+  height: 14px;
+  margin: 0 7px;
+  opacity: 0.92;
+  flex-shrink: 0;
 }
 
 .kf-victim {
-  color: #78909c;
+  color: #d4a843;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .kf-assist {
-  color: #1565c0;
-  font-weight: 900;
-  opacity: 0.75;
+  color: #93c5fd;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .kf-plus {
-  color: #9e9e9e;
+  color: rgba(255, 255, 255, 0.35);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 600;
+  margin: 0 3px;
 }
 
 .kill-feed-item.my-kill .kf-assist {
-  color: #e65100;
+  color: #fbbf24;
 }
 
 /* ── Chat ──────────────────────────────────────────────────────────────────── */
 #chat-container {
   position: fixed;
-  bottom: 80px;
+  bottom: 116px;
   left: 20px;
   width: 360px;
   z-index: 110;
@@ -924,18 +951,18 @@ body.scoped #crosshair {
 #minimap {
   position: fixed;
   top: 16px;
-  left: 16px;
+  right: 16px;
   width: 160px;
   height: 160px;
-  border-radius: 50%;
+  border-radius: 4px;
   overflow: hidden;
-  border: 3px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.4),
-    0 4px 20px rgba(0, 0, 0, 0.5);
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 4px 20px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   z-index: 100;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
 }
 
 #minimap canvas {
@@ -944,70 +971,57 @@ body.scoped #crosshair {
   height: 100%;
 }
 
-/* ── Weapon selector HUD ───────────────────────────────────────────────────── */
+/* ── Weapon selector HUD — Valorant style ─────────────────────────────────── */
 #hud-weapon {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: #fff;
-  border: 3px solid #e0e0e0;
-  border-radius: 14px;
-  padding: 6px 12px;
-  box-shadow:
-    0 3px 0 #bdbdbd,
-    0 4px 12px rgba(0, 0, 0, 0.15);
+  align-items: flex-end;
+  gap: 3px;
 }
 
 #hud-weapon-name {
-  font-size: 13px;
-  font-weight: 900;
-  color: #1a1a2e;
-  letter-spacing: 1px;
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 
 /* AWP name — cyan accent */
 #hud-weapon-name[data-weapon="awp"] {
-  color: #0097a7;
+  color: #67e8f9;
 }
 
 #hud-weapon-keys {
   display: flex;
-  gap: 5px;
+  gap: 4px;
 }
 
 .wkey {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 20px;
-  border: 2px solid #e0e7ef;
-  background: #f0f4f8;
-  color: #90a4ae;
-  letter-spacing: 0.3px;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.32);
+  letter-spacing: 0.5px;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .wkey.active {
-  background: #1e88e5;
-  border-color: #1565c0;
-  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 #wkey-2.active {
-  background: #0097a7;
-  border-color: #006064;
+  background: rgba(103, 232, 249, 0.15);
+  border-color: rgba(103, 232, 249, 0.4);
+  color: #67e8f9;
 }
-
-/* AWP ammo tint (cyan) */
-#hud-ammo.awp-ammo {
-  background: #e0f7fa;
-  border-color: #80deea;
-  box-shadow:
-    0 3px 0 #006064,
-    0 4px 12px rgba(0, 151, 167, 0.2);
-}
-
-
-

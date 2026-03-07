@@ -9,6 +9,9 @@ const players: Record<string, PlayerState> = {};
 // damageLog[victimId][attackerId] = total damage dealt
 const damageLog: Record<string, Record<string, number>> = {};
 
+// last weapon used per attacker
+const lastWeapon: Record<string, string> = {};
+
 export function getPlayers(): Record<string, PlayerState> {
     return players;
 }
@@ -33,6 +36,7 @@ function scheduleRespawn(io: Server, id: string) {
 function killPlayer(io: Server, victimId: string, killerId: string) {
     const target = players[victimId];
     target.hp = 0;
+    const weapon = lastWeapon[killerId] ?? 'ar';
     target.isDead = true;
 
     // Find the assist: highest damage dealer among non-killers
@@ -47,7 +51,7 @@ function killPlayer(io: Server, victimId: string, killerId: string) {
     }
     delete damageLog[victimId];
 
-    io.emit('player_killed', { victim: victimId, killer: killerId, assist: assistId });
+    io.emit('player_killed', { victim: victimId, killer: killerId, assist: assistId, weapon });
     scheduleRespawn(io, victimId);
 }
 
@@ -127,10 +131,11 @@ export function registerHandlers(io: Server, socket: Socket) {
         }
     });
 
-    socket.on('hit_player', (data: { targetId: string; damage?: number }) => {
+    socket.on('hit_player', (data: { targetId: string; damage?: number; weaponId?: string }) => {
         const target = players[data.targetId];
         if (target && !target.isDead && !target.isInvincible) {
             target.hp -= BULLET_DAMAGE;
+            if (data.weaponId) lastWeapon[socket.id] = data.weaponId;
 
             // Track damage for assist
             if (!damageLog[data.targetId]) damageLog[data.targetId] = {};
@@ -162,6 +167,7 @@ export function registerHandlers(io: Server, socket: Socket) {
         delete players[socket.id];
         // Clean up damage log entries for/by this player
         delete damageLog[socket.id];
+        delete lastWeapon[socket.id];
         for (const victimId in damageLog) {
             delete damageLog[victimId][socket.id];
         }

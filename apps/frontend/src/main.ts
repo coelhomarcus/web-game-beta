@@ -13,32 +13,55 @@ import "./ui/chat";
 import { camera } from "./scene/setup";
 import { controls, lockAndStart } from "./systems/input";
 import { socket } from "./network/socket";
-import { setupSocketEvents, setPlayerName, getPlayerName, getMyId } from "./network/events";
+import {
+  setupSocketEvents,
+  setPlayerName,
+  getPlayerName,
+  getMyId,
+} from "./network/events";
 import { allStats } from "./ui/scoreboard";
 import { animate } from "./game-loop";
 
 // Mount renderer
 document.getElementById("app")!.appendChild(renderer.domElement);
 
-// First-person weapon — dynamically swap on weapon switch
-import { makeWeapon, makeAwpModel } from "./player/PlayerModel";
+// First-person weapon + arms — dynamically swap on weapon switch
+import {
+  makeWeapon,
+  makeAwpModel,
+  makeFirstPersonArms,
+} from "./player/PlayerModel";
 import { getCurrentWeapon } from "./systems/shooting";
+import { setFpWeapon, setFpArms } from "./systems/headBob";
 
 let fpWeapon = makeWeapon(true);
+let fpArms = makeFirstPersonArms("rifle");
 camera.add(fpWeapon);
+camera.add(fpArms);
+setFpWeapon(fpWeapon);
+setFpArms(fpArms);
 scene.add(controls.object);
 
-// Listen for weapon switch events to swap the FP model
+// Listen for weapon switch events to swap the FP model and arms
 window.addEventListener("weapon-switched", () => {
   camera.remove(fpWeapon);
+  camera.remove(fpArms);
   const w = getCurrentWeapon();
-  fpWeapon = w.id === "awp" ? makeAwpModel(true) : makeWeapon(true);
+  const isAwp = w.id === "awp";
+  fpWeapon = isAwp ? makeAwpModel(true) : makeWeapon(true);
+  fpArms = makeFirstPersonArms(isAwp ? "awp" : "rifle");
   camera.add(fpWeapon);
+  camera.add(fpArms);
+  setFpWeapon(fpWeapon);
+  setFpArms(fpArms);
+  // Broadcast weapon change to other players
+  socket.emit("weapon_switch", { weaponId: w.id });
 });
 
-// Hide/show FP weapon when scoping with AWP
+// Hide/show FP weapon (and arms) when scoping with AWP
 window.addEventListener("scope-changed", ((e: CustomEvent) => {
   fpWeapon.visible = !e.detail.scoped;
+  fpArms.visible = !e.detail.scoped;
 }) as EventListener);
 
 // Start screen

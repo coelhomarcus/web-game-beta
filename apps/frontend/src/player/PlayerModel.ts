@@ -3,8 +3,129 @@ import { scene } from "../scene/setup";
 import { syncNameSprite } from "./NameSprite";
 
 export const otherPlayers: Record<string, THREE.Group> = {};
-export const playerOriginalMaterial: Record<string, THREE.MeshStandardMaterial> = {};
+export const playerOriginalMaterial: Record<
+  string,
+  THREE.MeshStandardMaterial
+> = {};
 export const playerCurrentNames: Record<string, string> = {};
+
+/**
+ * First-person arm rig — two forearm + hand blocks positioned in camera space
+ * to visually "hold" the weapon. Added to the camera separately from the weapon.
+ */
+export function makeFirstPersonArms(
+  variant: "rifle" | "awp" = "rifle",
+): THREE.Group {
+  const g = new THREE.Group();
+  const skin = new THREE.MeshStandardMaterial({
+    color: 0xc68642,
+    roughness: 0.85,
+  });
+  const sleeve = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.9,
+  });
+
+  // Helper: add a hand box + forearm box in camera-local coordinates
+  function addArm(
+    hx: number,
+    hy: number,
+    hz: number, // hand center (camera space)
+    hw: number,
+    hh: number,
+    hd: number, // hand size
+    fx: number,
+    fy: number,
+    fz: number, // forearm center
+    frx: number,
+    fry: number,
+    frz: number, // forearm euler rotation
+  ) {
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(hw, hh, hd), skin);
+    hand.position.set(hx, hy, hz);
+    g.add(hand);
+
+    const forearm = new THREE.Mesh(
+      new THREE.BoxGeometry(0.09, 0.38, 0.09),
+      sleeve,
+    );
+    forearm.position.set(fx, fy, fz);
+    forearm.rotation.set(frx, fry, frz);
+    g.add(forearm);
+  }
+
+  if (variant === "rifle") {
+    // Weapon group sits at camera pos (0.3, -0.3, -0.5)
+    // Grip in camera space ≈ (0.30, -0.50, -0.30)
+    // Barrel mid support ≈ (0.16, -0.38, -0.72)
+
+    // Right hand — trigger/grip, nearly vertical forearm coming from off-screen below
+    addArm(
+      0.3,
+      -0.51,
+      -0.3,
+      0.14,
+      0.1,
+      0.15,
+      0.34,
+      -0.76,
+      -0.22,
+      -0.15,
+      0.0,
+      -0.1,
+    );
+    // Left hand — barrel support, forearm angled forward
+    addArm(
+      0.16,
+      -0.4,
+      -0.7,
+      0.14,
+      0.09,
+      0.16,
+      0.12,
+      -0.62,
+      -0.56,
+      -0.45,
+      0.0,
+      0.1,
+    );
+  } else {
+    // AWP: weapon group at (0.3, -0.32, -0.5), longer barrel so left hand goes further out
+
+    // Right hand — same grip area
+    addArm(
+      0.3,
+      -0.51,
+      -0.3,
+      0.14,
+      0.1,
+      0.15,
+      0.34,
+      -0.76,
+      -0.22,
+      -0.15,
+      0.0,
+      -0.1,
+    );
+    // Left hand — further forward along the long barrel
+    addArm(
+      0.12,
+      -0.4,
+      -0.84,
+      0.14,
+      0.09,
+      0.16,
+      0.09,
+      -0.62,
+      -0.68,
+      -0.55,
+      0.0,
+      0.12,
+    );
+  }
+
+  return g;
+}
 
 export function makeWeapon(firstPerson: boolean): THREE.Group {
   const g = new THREE.Group();
@@ -38,27 +159,43 @@ export function makeAwpModel(firstPerson: boolean): THREE.Group {
   const m = (c: number, r = 0.5) =>
     new THREE.MeshStandardMaterial({ color: c, roughness: r });
   // Long barrel
-  const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 1.1), m(0x222222));
+  const barrel = new THREE.Mesh(
+    new THREE.BoxGeometry(0.07, 0.07, 1.1),
+    m(0x222222),
+  );
   barrel.position.set(0, 0.02, -0.35);
   g.add(barrel);
   // Scope body
-  const scope = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.3), m(0x111111, 0.9));
+  const scope = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 0.1, 0.3),
+    m(0x111111, 0.9),
+  );
   scope.position.set(0, 0.1, -0.1);
   g.add(scope);
   // Scope lens (cyan tint)
   const lens = new THREE.Mesh(
     new THREE.CylinderGeometry(0.045, 0.045, 0.05, 12),
-    new THREE.MeshStandardMaterial({ color: 0x00ffff, roughness: 0.1, metalness: 0.5 }),
+    new THREE.MeshStandardMaterial({
+      color: 0x00ffff,
+      roughness: 0.1,
+      metalness: 0.5,
+    }),
   );
   lens.rotation.x = Math.PI / 2;
   lens.position.set(0, 0.1, -0.26);
   g.add(lens);
   // Stock / body
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.14, 0.5), m(0x8b5a2b, 0.9));
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.13, 0.14, 0.5),
+    m(0x8b5a2b, 0.9),
+  );
   body.position.set(0, -0.03, 0.2);
   g.add(body);
   // Grip
-  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.22, 0.09), m(0x222222, 0.9));
+  const grip = new THREE.Mesh(
+    new THREE.BoxGeometry(0.09, 0.22, 0.09),
+    m(0x222222, 0.9),
+  );
   grip.position.set(0, -0.18, 0.1);
   grip.rotation.x = -Math.PI / 10;
   g.add(grip);
@@ -67,8 +204,11 @@ export function makeAwpModel(firstPerson: boolean): THREE.Group {
 }
 
 export function addOtherPlayer(player: {
-  id: string; name: string; color: string;
-  position: { x: number; y: number; z: number }; isDead: boolean;
+  id: string;
+  name: string;
+  color: string;
+  position: { x: number; y: number; z: number };
+  isDead: boolean;
 }) {
   const grp = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ color: player.color });
@@ -88,18 +228,45 @@ export function addOtherPlayer(player: {
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), mat);
   head.castShadow = true;
   headGrp.add(head);
-  const face = new THREE.Mesh(
-    new THREE.BoxGeometry(0.42, 0.12, 0.1),
-    darkMat,
-  );
+  const face = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.1), darkMat);
   face.position.set(0, 0.0, -0.2);
   headGrp.add(face);
-  headGrp.add(makeWeapon(false));
   grp.add(headGrp);
 
-  // ── Arms ───────────────────────────────────────────────────────────────
-  grp.add(makeLimb("leftArm", 0.18, 0.55, 0.18, mat, -0.35, 0.15, 0, -0.27));
-  grp.add(makeLimb("rightArm", 0.18, 0.55, 0.18, mat, 0.35, 0.15, 0, -0.27));
+  // ── Arms (shoulder pivots, posed in combat hold facing -Z) ─────────────
+  const leftArm = makeLimb(
+    "leftArm",
+    0.18,
+    0.55,
+    0.18,
+    mat,
+    -0.27,
+    0.15,
+    0,
+    -0.27,
+  );
+  const rightArm = makeLimb(
+    "rightArm",
+    0.18,
+    0.55,
+    0.18,
+    mat,
+    0.27,
+    0.15,
+    0,
+    -0.27,
+  );
+  // rotation.x > 0 tilts the hanging arm toward -Z (forward in model space)
+  leftArm.rotation.x = Math.PI * 0.5; // left hand supports barrel — more horizontal
+  rightArm.rotation.x = Math.PI * 0.43; // right hand grips trigger — slightly lower
+  grp.add(leftArm);
+  grp.add(rightArm);
+
+  // ── Weapon (attached to torso group, aligned with hands) ───────────────
+  const wep3p = makeWeapon(false);
+  wep3p.name = "weapon3p";
+  wep3p.position.set(0.08, 0.1, -0.42);
+  grp.add(wep3p);
 
   // ── Legs ───────────────────────────────────────────────────────────────
   grp.add(makeLimb("leftLeg", 0.2, 0.6, 0.2, mat, -0.12, -0.4, 0, -0.3));
@@ -113,11 +280,30 @@ export function addOtherPlayer(player: {
   syncNameSprite(grp, player.id, player.name, player.color);
 }
 
+/** Swap an other player's 3P weapon model (called on weapon_switch event). */
+export function swapOtherPlayerWeapon(
+  id: string,
+  weaponId: "ar" | "awp",
+): void {
+  const grp = otherPlayers[id];
+  if (!grp) return;
+  const old = grp.getObjectByName("weapon3p");
+  if (old) grp.remove(old);
+  const wep = weaponId === "awp" ? makeAwpModel(false) : makeWeapon(false);
+  wep.name = "weapon3p";
+  wep.position.set(0.08, 0.1, -0.42);
+  grp.add(wep);
+}
+
 function makeLimb(
   name: string,
-  w: number, h: number, d: number,
+  w: number,
+  h: number,
+  d: number,
   mat: THREE.MeshStandardMaterial,
-  px: number, py: number, pz: number,
+  px: number,
+  py: number,
+  pz: number,
   meshOffY: number,
 ): THREE.Group {
   const g = new THREE.Group();
@@ -144,20 +330,27 @@ export function flashPlayerHit(id: string) {
   }, 150);
 }
 
-const blinkingPlayers: Record<string, { interval: number; toggle: boolean }> = {};
+const blinkingPlayers: Record<string, { interval: number; toggle: boolean }> =
+  {};
 
 export function startInvincibleBlink(id: string, duration: number) {
   stopInvincibleBlink(id);
   let toggle = false;
   const interval = setInterval(() => {
     const orig = playerOriginalMaterial[id];
-    if (!orig) { stopInvincibleBlink(id); return; }
+    if (!orig) {
+      stopInvincibleBlink(id);
+      return;
+    }
     toggle = !toggle;
     // Toggle a blue emissive on the shared material so all body parts blink.
     orig.emissive.setHex(toggle ? 0x3399ff : 0x000000);
     orig.emissiveIntensity = toggle ? 0.6 : 0;
   }, 150);
-  blinkingPlayers[id] = { interval: interval as unknown as number, toggle: false };
+  blinkingPlayers[id] = {
+    interval: interval as unknown as number,
+    toggle: false,
+  };
   setTimeout(() => stopInvincibleBlink(id), duration);
 }
 
@@ -177,12 +370,96 @@ function stopInvincibleBlink(id: string) {
 export function removeOtherPlayer(id: string) {
   stopInvincibleBlink(id);
   cleanupRagdoll(id);
+  walkState.delete(id);
   if (otherPlayers[id]) {
     scene.remove(otherPlayers[id]);
     delete otherPlayers[id];
   }
   delete playerOriginalMaterial[id];
   delete playerCurrentNames[id];
+}
+
+// ─── Third-person walk animation ─────────────────────────────────────────────
+
+const ARM_HOLD_LEFT = Math.PI * 0.5; // base rotation.x for left arm
+const ARM_HOLD_RIGHT = Math.PI * 0.43; // base rotation.x for right arm
+const ARM_SWING = 0.22; // arm swing amplitude (radians)
+const LEG_SWING = 0.7; // leg swing amplitude (radians)
+const WALK_SPEED_3P = 12; // oscillations per second
+const ANIM_LERP = 10; // smoothing speed for limb transitions
+const SPEED_THRESHOLD = 0.3; // minimum speed to count as "walking"
+
+interface WalkState {
+  timer: number;
+  lastPos: THREE.Vector3;
+  smoothSpeed: number; // smoothed horizontal speed
+}
+const walkState: Map<string, WalkState> = new Map();
+
+export function updatePlayerAnimations(delta: number): void {
+  for (const id in otherPlayers) {
+    if (isRagdollActive(id)) continue;
+    const grp = otherPlayers[id];
+    if (!grp.visible) {
+      walkState.delete(id);
+      continue;
+    }
+
+    let ws = walkState.get(id);
+    if (!ws) {
+      ws = { timer: 0, lastPos: grp.position.clone(), smoothSpeed: 0 };
+      walkState.set(id, ws);
+    }
+
+    // Compute horizontal distance moved this frame
+    const dx = grp.position.x - ws.lastPos.x;
+    const dz = grp.position.z - ws.lastPos.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const instantSpeed = delta > 0 ? dist / delta : 0;
+    ws.lastPos.copy(grp.position);
+
+    // Smooth the speed to avoid flickering
+    ws.smoothSpeed += (instantSpeed - ws.smoothSpeed) * Math.min(1, delta * 8);
+
+    const isWalking = ws.smoothSpeed > SPEED_THRESHOLD;
+
+    if (isWalking) ws.timer += delta * WALK_SPEED_3P;
+
+    // Blend factor: 0 when still, 1 when walking at full speed
+    const blend = Math.min(1, ws.smoothSpeed / 3);
+    const lerpFactor = Math.min(1, delta * ANIM_LERP);
+
+    const la = grp.getObjectByName("leftArm") as THREE.Group | null;
+    const ra = grp.getObjectByName("rightArm") as THREE.Group | null;
+    const ll = grp.getObjectByName("leftLeg") as THREE.Group | null;
+    const rl = grp.getObjectByName("rightLeg") as THREE.Group | null;
+    const wep = grp.getObjectByName("weapon3p") as THREE.Group | null;
+
+    const sinPhase = Math.sin(ws.timer);
+
+    // Arms swing opposite to their corresponding leg
+    if (la) {
+      const t = ARM_HOLD_LEFT + sinPhase * ARM_SWING * blend;
+      la.rotation.x += (t - la.rotation.x) * lerpFactor;
+    }
+    if (ra) {
+      const t = ARM_HOLD_RIGHT - sinPhase * ARM_SWING * blend;
+      ra.rotation.x += (t - ra.rotation.x) * lerpFactor;
+    }
+    // Left leg forward when right arm forward, and vice-versa (natural gait)
+    if (ll) {
+      const t = sinPhase * LEG_SWING * blend;
+      ll.rotation.x += (t - ll.rotation.x) * lerpFactor;
+    }
+    if (rl) {
+      const t = -sinPhase * LEG_SWING * blend;
+      rl.rotation.x += (t - rl.rotation.x) * lerpFactor;
+    }
+    // Weapon pitches very slightly with the right arm for a natural look
+    if (wep && ra) {
+      wep.rotation.x = (ra.rotation.x - ARM_HOLD_RIGHT) * 0.5;
+    }
+  }
 }
 
 // ─── Ragdoll ──────────────────────────────────────────────────────────────────
@@ -258,11 +535,11 @@ export function triggerRagdoll(
     const dist = Math.max(0.3, Math.sqrt(dx * dx + dz * dz));
     const nx = dx / dist;
     const nz = dz / dist;
-    const force = 16 + Math.random() * 10;   // strong horizontal blast
+    const force = 16 + Math.random() * 10; // strong horizontal blast
     velX = nx * force;
     velZ = nz * force;
-    velY = 12 + Math.random() * 8;            // high arc
-    angSpeed = 18 + Math.random() * 10;       // fast spin
+    velY = 12 + Math.random() * 8; // high arc
+    angSpeed = 18 + Math.random() * 10; // fast spin
     // Extra crazy limb spin for grenade
     for (const l of limbs) {
       l.angVelX *= 4;
@@ -376,8 +653,16 @@ export function updateRagdolls(delta: number) {
       const limbDamp = r.settled ? Math.pow(0.03, delta) : Math.pow(0.4, delta);
       l.angVelX *= limbDamp;
       l.angVelZ *= limbDamp;
-      l.group.rotation.x = THREE.MathUtils.clamp(l.group.rotation.x, -Math.PI * 0.7, Math.PI * 0.7);
-      l.group.rotation.z = THREE.MathUtils.clamp(l.group.rotation.z, -Math.PI * 0.4, Math.PI * 0.4);
+      l.group.rotation.x = THREE.MathUtils.clamp(
+        l.group.rotation.x,
+        -Math.PI * 0.7,
+        Math.PI * 0.7,
+      );
+      l.group.rotation.z = THREE.MathUtils.clamp(
+        l.group.rotation.z,
+        -Math.PI * 0.4,
+        Math.PI * 0.4,
+      );
     }
 
     // Body stays on the ground until respawn – no auto-hide / no fade
@@ -409,11 +694,16 @@ function makeDamageSprite(damage: number): THREE.Sprite {
   ctx.lineWidth = 6;
   ctx.strokeText(`-${damage}`, 64, 34);
   // Fill: red for big damage, orange for mid, yellow for small
-  ctx.fillStyle = damage >= 100 ? "#ff3300" : damage >= 50 ? "#ff7700" : "#ffdd00";
+  ctx.fillStyle =
+    damage >= 100 ? "#ff3300" : damage >= 50 ? "#ff7700" : "#ffdd00";
   ctx.fillText(`-${damage}`, 64, 34);
 
   const tex = new THREE.CanvasTexture(canvas);
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  const mat = new THREE.SpriteMaterial({
+    map: tex,
+    transparent: true,
+    depthWrite: false,
+  });
   const sprite = new THREE.Sprite(mat);
   sprite.scale.set(0.9, 0.45, 1);
   return sprite;
@@ -432,7 +722,12 @@ export function showDamageNumber(id: string, damage: number): void {
   );
   scene.add(sprite);
 
-  activeFloats.push({ sprite, velY: 2.0 + Math.random() * 0.6, elapsed: 0, lifetime: 1.1 });
+  activeFloats.push({
+    sprite,
+    velY: 2.0 + Math.random() * 0.6,
+    elapsed: 0,
+    lifetime: 1.1,
+  });
 }
 
 export function updateFloatingDamageNumbers(delta: number): void {

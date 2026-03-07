@@ -84,6 +84,72 @@ export const playerOriginalMaterial: Record<
 > = {};
 export const playerCurrentNames: Record<string, string> = {};
 
+// ─── Local corpse (for death camera) ──────────────────────────────────────────
+
+const LOCAL_CORPSE_ID = "__local_corpse__";
+let localCorpseGroup: THREE.Group | null = null;
+
+export function createLocalCorpse(
+  color: string | number,
+  position: { x: number; y: number; z: number },
+  cause: "bullet" | "grenade",
+  explosionPos?: { x: number; y: number; z: number },
+): void {
+  cleanupLocalCorpse();
+
+  const grp = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 0.3), mat);
+  torso.name = "torso";
+  torso.castShadow = torso.receiveShadow = true;
+  grp.add(torso);
+
+  const headGrp = new THREE.Group();
+  headGrp.name = "headGroup";
+  headGrp.position.set(0, 0.55, 0);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), mat);
+  head.castShadow = true;
+  headGrp.add(head);
+  const face = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.1), darkMat);
+  face.position.set(0, 0.0, -0.2);
+  headGrp.add(face);
+  grp.add(headGrp);
+
+  const leftArm = makeLimb("leftArm", 0.18, 0.55, 0.18, mat, -0.27, 0.20, 0, -0.27);
+  const rightArm = makeLimb("rightArm", 0.18, 0.55, 0.18, mat, 0.27, 0.20, 0, -0.27);
+  leftArm.rotation.x = ARM_HOLD_LEFT;
+  leftArm.rotation.z = 0.15;
+  rightArm.rotation.x = ARM_HOLD_RIGHT;
+  rightArm.rotation.z = -0.15;
+  grp.add(leftArm);
+  grp.add(rightArm);
+
+  grp.add(makeLimb("leftLeg", 0.2, 0.6, 0.2, mat, -0.12, -0.4, 0, -0.3));
+  grp.add(makeLimb("rightLeg", 0.2, 0.6, 0.2, mat, 0.12, -0.4, 0, -0.3));
+
+  grp.position.set(position.x, 1, position.z);
+  scene.add(grp);
+
+  otherPlayers[LOCAL_CORPSE_ID] = grp;
+  localCorpseGroup = grp;
+
+  triggerRagdoll(LOCAL_CORPSE_ID, cause, explosionPos);
+}
+
+export function getLocalCorpseGroup(): THREE.Group | null {
+  return localCorpseGroup;
+}
+
+export function cleanupLocalCorpse(): void {
+  if (!localCorpseGroup) return;
+  cleanupRagdoll(LOCAL_CORPSE_ID);
+  scene.remove(localCorpseGroup);
+  delete otherPlayers[LOCAL_CORPSE_ID];
+  localCorpseGroup = null;
+}
+
 /**
  * First-person arm rig — two forearm + hand blocks positioned in camera space
  * to visually "hold" the weapon. Added to the camera separately from the weapon.

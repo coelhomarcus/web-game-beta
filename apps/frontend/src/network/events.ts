@@ -16,6 +16,8 @@ import {
   isFlinging,
   showDamageNumber,
   swapOtherPlayerWeapon,
+  createLocalCorpse,
+  cleanupLocalCorpse,
 } from "../player/PlayerModel";
 import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
@@ -193,6 +195,13 @@ export function setupSocketEvents() {
         updateHudHp(0);
         controls.unlock();
         deathScreen.style.display = "flex";
+        const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
+        createLocalCorpse(
+          myColor || 0xc68642,
+          { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+          cause,
+          data.explosionPos,
+        );
       } else {
         const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
         triggerRagdoll(data.victim, cause, data.explosionPos);
@@ -202,6 +211,7 @@ export function setupSocketEvents() {
 
   socket.on("player_respawned", (p: PlayerState) => {
     if (p.id === myId) {
+      cleanupLocalCorpse();
       setIsDead(false);
       camera.position.set(p.position.x, PLAYER_HEIGHT, p.position.z);
       velocity.set(0, 0, 0);

@@ -114,3 +114,19 @@ export function playReloadSound() {
     osc.stop(audioCtx.currentTime + offset + 0.08);
   });
 }
+
+/** Plays FUSRODAH at the start of the shout charge (when Z is pressed). */
+export function playShoutChargeSound() {
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  _fusrodahAudio.currentTime = 0;
+  _fusrodahAudio.play().catch(() => { /* autoplay blocked */ });
+}
+
+/** Powerful dragon-shout roar that plays when the shout fires. */
+const _fusrodahAudio = new Audio("/audio/FUSRODAH!.mp3");
+_fusrodahAudio.volume = 0.3;
+
+/** No-op: audio is already started during the charge phase. */
+export function playShoutSound() {
+  // Audio was triggered by playShoutChargeSound on Z press — nothing to do here.
+}

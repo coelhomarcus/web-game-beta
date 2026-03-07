@@ -520,6 +520,105 @@ body.scoped #crosshair {
   text-align: center;
 }
 
+/* ── Ability slot (next to grenade) ─────────────────────────────────────────── */
+
+.hud-ability-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  gap: 1px;
+  transition:
+    opacity 0.3s,
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.hud-ability-slot.ready {
+  background: rgba(170, 68, 255, 0.18);
+  border-color: rgba(200, 100, 255, 0.55);
+  box-shadow: 0 0 8px rgba(170, 68, 255, 0.45);
+  animation: ability-pulse 1.8s ease-in-out infinite;
+}
+
+.hud-ability-slot.charging {
+  background: rgba(255, 200, 50, 0.18);
+  border-color: rgba(255, 220, 80, 0.75);
+  box-shadow: 0 0 12px rgba(255, 200, 50, 0.6);
+  /* CSS conic-gradient charge ring driven by --charge-pct JS variable */
+  outline: 3px solid transparent;
+  background-image: conic-gradient(
+    rgba(255, 220, 80, 0.85) calc(var(--charge-pct, 0) * 360deg),
+    rgba(255,255,255,0.08) 0deg
+  );
+  animation: charge-flicker 0.15s steps(2) infinite;
+}
+
+@keyframes charge-flicker {
+  0%   { filter: brightness(1);   }
+  100% { filter: brightness(1.25); }
+}
+
+.hud-ability-slot.empty {
+  opacity: 0.45;
+}
+
+@keyframes ability-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(170, 68, 255, 0.35); }
+  50%       { box-shadow: 0 0 14px rgba(200, 110, 255, 0.75); }
+}
+
+#hud-ability-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.hud-ability-key {
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ── Ability feed (top-centre toast) ─────────────────────────────────────────── */
+
+#ability-feed {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  background: rgba(20, 10, 40, 0.82);
+  border: 1px solid rgba(180, 90, 255, 0.55);
+  color: #e8b4ff;
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.45s;
+}
+
+#ability-feed.visible {
+  display: block;
+  opacity: 1;
+}
+
+#ability-feed.fade-out {
+  opacity: 0;
+}
+
 /* ── Right panel: Weapon + Ammo ─── */
 #hud-right {
   display: flex;

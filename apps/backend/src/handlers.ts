@@ -114,6 +114,59 @@ export function registerHandlers(io: Server, socket: Socket) {
         socket.broadcast.emit('grenade_launched', data);
     });
 
+    socket.on('shout', (data: { origin: Vec3; forward: Vec3 }) => {
+        const SHOUT_RANGE   = 5;    // metres
+        const SHOUT_DAMAGE  = 40;
+        const KNOCK_H       = 26;   // horizontal impulse magnitude
+        const KNOCK_V       = 14;   // vertical impulse
+
+        const { origin, forward } = data;
+        // Normalise the forward vector (XZ only, trust the client direction)
+        const fLen = Math.sqrt(forward.x * forward.x + forward.z * forward.z) || 1;
+        const fx = forward.x / fLen;
+        const fz = forward.z / fLen;
+
+        for (const [id, target] of Object.entries(players)) {
+            if (id === socket.id) continue;
+            if (target.isDead || target.isInvincible) continue;
+
+            const dx = target.position.x - origin.x;
+            const dz = target.position.z - origin.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist > SHOUT_RANGE) continue;
+
+            // Must be in front: dot(forward, dir_to_target) > 0
+            const dot = (dx / (dist || 1)) * fx + (dz / (dist || 1)) * fz;
+            if (dot <= 0) continue;
+
+            target.hp = Math.max(0, target.hp - SHOUT_DAMAGE);
+
+            // Track damage for assist
+            if (!damageLog[id]) damageLog[id] = {};
+            damageLog[id][socket.id] = (damageLog[id][socket.id] ?? 0) + SHOUT_DAMAGE;
+
+            // Knockback impulse direction (push away from caster)
+            const dirLen = dist || 1;
+            const knockback: Vec3 = {
+                x: (dx / dirLen) * KNOCK_H,
+                y: KNOCK_V,
+                z: (dz / dirLen) * KNOCK_H,
+            };
+
+            if (target.hp <= 0) {
+                killPlayer(io, id, socket.id, 'grenade', origin);
+            } else {
+                io.emit('player_hit', { id, hp: target.hp });
+            }
+
+            // Broadcast visual fling to all clients (ragdoll-lite even if alive)
+            io.emit('shout_blast', { victimId: id, origin });
+
+            // Send knockback only to the victim
+            io.to(id).emit('shout_knockback', { force: knockback });
+        }
+    });
+
     socket.on('grenade_throw', (data: { explosionPos: Vec3 }) => {
         const ep = data.explosionPos;
         io.emit('grenade_explode', { position: ep, throwerId: socket.id });

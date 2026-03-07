@@ -6,6 +6,7 @@ import {
 } from "./physics";
 import { handleShoot, startReload, switchWeapon, toggleScope, exitScope } from "./shooting";
 import { throwGrenade } from "./grenade";
+import { activateAbility } from "./abilities";
 import { renderScoreboard } from "../ui/scoreboard";
 import { isChatOpen, openChat } from "../ui/chat";
 
@@ -55,6 +56,7 @@ window.addEventListener("keydown", (e) => {
     case "KeyD": setMoveRight(true); break;
     case "Space": if (isOnGround) setWantsJump(true); break;
     case "KeyQ": throwGrenade(controls, isDead); break;
+    case "KeyZ": if (!isDead) activateAbility(); break;
     case "KeyR": startReload(); break;
     case "Digit1": switchWeapon("ar"); break;
     case "Digit2": switchWeapon("awp"); break;

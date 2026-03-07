@@ -22,3 +22,14 @@ export interface Stats {
   assists: number;
   color: string;
 }
+
+// ─── Abilities ───────────────────────────────────────────────────────────────
+
+export interface Ability {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  /** Called when the player activates it (Z). Returns true if the ability is consumed. */
+  execute: () => boolean;
+}

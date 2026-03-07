@@ -221,6 +221,136 @@ export function isRagdollActive(id: string): boolean {
   return activeRagdolls.has(id);
 }
 
+// ── Shout fling (non-lethal ragdoll-lite) ─────────────────────────────────────
+
+interface FlingAnim {
+  group: THREE.Group;
+  limbs: LimbAnim[];
+  velX: number;
+  velY: number;
+  velZ: number;
+  angVelX: number;
+  angVelZ: number;
+  elapsed: number;
+  origPos: THREE.Vector3;
+  origRot: THREE.Euler;
+}
+
+const activeFlings: Map<string, FlingAnim> = new Map();
+const FLING_DURATION = 1.4;      // seconds until we start recovering
+const FLING_RECOVER  = 0.35;     // lerp-back duration
+const FLING_FRICTION = 1.8;      // must match KNOCKBACK_FRICTION in physics.ts
+
+export function isFlinging(id: string): boolean {
+  return activeFlings.has(id);
+}
+
+/**
+ * Triggers a temporary "fling" (ragdoll-lite) on another player's model.
+ * The body flies away from `origin` for ~1.4 s then snaps back to normal.
+ */
+export function triggerShoutFling(
+  id: string,
+  origin: { x: number; y: number; z: number },
+): void {
+  if (activeFlings.has(id)) return; // already flinging
+  if (activeRagdolls.has(id)) return; // dead ragdoll takes priority
+  const grp = otherPlayers[id];
+  if (!grp) return;
+
+  const dx = grp.position.x - origin.x;
+  const dz = grp.position.z - origin.z;
+  const dist = Math.max(0.3, Math.sqrt(dx * dx + dz * dz));
+  const nx = dx / dist;
+  const nz = dz / dist;
+  // Use same force values as backend KNOCK_H / KNOCK_V
+  const hForce = 26;
+
+  const limbs: LimbAnim[] = [];
+  for (const name of LIMB_NAMES) {
+    const lg = grp.getObjectByName(name) as THREE.Group | undefined;
+    if (lg) {
+      limbs.push({
+        group: lg,
+        angVelX: (Math.random() - 0.5) * 6,
+        angVelZ: (Math.random() - 0.5) * 3,
+      });
+    }
+  }
+
+  activeFlings.set(id, {
+    group: grp,
+    limbs,
+    velX: nx * hForce,
+    velY: 14,
+    velZ: nz * hForce,
+    angVelX: (Math.random() - 0.5) * 12,
+    angVelZ: (Math.random() - 0.5) * 8,
+    elapsed: 0,
+    origPos: grp.position.clone(),
+    origRot: grp.rotation.clone(),
+  });
+}
+
+export function updateFlings(delta: number): void {
+  for (const [id, f] of activeFlings) {
+    f.elapsed += delta;
+
+    if (f.elapsed < FLING_DURATION) {
+      // Flying phase
+      f.velY -= RAGDOLL_GRAVITY * delta;
+      f.group.position.x += f.velX * delta;
+      f.group.position.z += f.velZ * delta;
+      f.group.position.y += f.velY * delta;
+
+      // Horizontal friction matching the victim's real knockback
+      f.velX -= f.velX * FLING_FRICTION * delta;
+      f.velZ -= f.velZ * FLING_FRICTION * delta;
+
+      if (f.group.position.y <= GROUND_Y) {
+        f.group.position.y = GROUND_Y;
+        f.velY = Math.abs(f.velY) * 0.3;
+        f.velX *= 0.5;
+        f.velZ *= 0.5;
+      }
+
+      f.group.rotation.x += f.angVelX * delta;
+      f.group.rotation.z += f.angVelZ * delta;
+      const drag = Math.pow(0.3, delta);
+      f.angVelX *= drag;
+      f.angVelZ *= drag;
+
+      for (const l of f.limbs) {
+        l.group.rotation.x += l.angVelX * delta;
+        l.group.rotation.z += l.angVelZ * delta;
+        l.angVelX *= drag;
+        l.angVelZ *= drag;
+        l.group.rotation.x = THREE.MathUtils.clamp(l.group.rotation.x, -Math.PI * 0.5, Math.PI * 0.5);
+        l.group.rotation.z = THREE.MathUtils.clamp(l.group.rotation.z, -Math.PI * 0.3, Math.PI * 0.3);
+      }
+    } else {
+      // Recovery phase — stand upright at the landing spot (no position reset)
+      const rT = Math.min((f.elapsed - FLING_DURATION) / FLING_RECOVER, 1);
+      f.group.rotation.x = THREE.MathUtils.lerp(f.group.rotation.x, 0, rT);
+      f.group.rotation.z = THREE.MathUtils.lerp(f.group.rotation.z, 0, rT);
+      f.group.position.y = THREE.MathUtils.lerp(f.group.position.y, GROUND_Y, rT);
+
+      for (const l of f.limbs) {
+        l.group.rotation.x = THREE.MathUtils.lerp(l.group.rotation.x, 0, rT);
+        l.group.rotation.z = THREE.MathUtils.lerp(l.group.rotation.z, 0, rT);
+      }
+
+      if (rT >= 1) {
+        // Keep current XZ position, just reset rotation to upright
+        f.group.rotation.set(0, f.group.rotation.y, 0);
+        f.group.position.y = GROUND_Y;
+        for (const l of f.limbs) l.group.rotation.set(0, 0, 0);
+        activeFlings.delete(id);
+      }
+    }
+  }
+}
+
 export function triggerRagdoll(
   id: string,
   cause: "bullet" | "grenade" = "bullet",

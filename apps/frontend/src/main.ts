@@ -30,6 +30,7 @@ import {
   storeFaceDataUrl,
   getFaceDataUrl,
   extractDominantColor,
+  disposeFaceTexture,
 } from "./utils/faceTexture";
 import { openFaceCropModal } from "./ui/faceCrop";
 import {
@@ -228,9 +229,7 @@ faceRemoveBtn?.addEventListener("click", () => {
   if (colorPickerInput) colorPickerInput.value = DEFAULT_COLOR;
   if (colorPickerLabel) colorPickerLabel.textContent = DEFAULT_COLOR;
   updatePreviewBodyColor(DEFAULT_COLOR);
-  import("./utils/faceTexture").then(({ disposeFaceTexture }) => {
-    disposeFaceTexture("__local__");
-  });
+  disposeFaceTexture("__local__");
 });
 
 function startGame() {

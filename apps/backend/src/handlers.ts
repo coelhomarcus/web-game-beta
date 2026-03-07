@@ -30,7 +30,7 @@ function scheduleRespawn(io: Server, id: string) {
     }, RESPAWN_TIME);
 }
 
-function killPlayer(io: Server, victimId: string, killerId: string) {
+function killPlayer(io: Server, victimId: string, killerId: string, cause: 'bullet' | 'grenade' = 'bullet', explosionPos?: Vec3) {
     const target = players[victimId];
     target.hp = 0;
     target.isDead = true;
@@ -47,7 +47,13 @@ function killPlayer(io: Server, victimId: string, killerId: string) {
     }
     delete damageLog[victimId];
 
-    io.emit('player_killed', { victim: victimId, killer: killerId, assist: assistId });
+    io.emit('player_killed', {
+        victim: victimId,
+        killer: killerId,
+        assist: assistId,
+        cause,
+        explosionPos: cause === 'grenade' ? explosionPos : undefined,
+    });
     scheduleRespawn(io, victimId);
 }
 
@@ -120,7 +126,7 @@ export function registerHandlers(io: Server, socket: Socket) {
             damageLog[id][socket.id] = (damageLog[id][socket.id] ?? 0) + dmg;
 
             if (target.hp <= 0) {
-                killPlayer(io, id, socket.id);
+                killPlayer(io, id, socket.id, 'grenade', ep);
             } else {
                 io.emit('player_hit', { id, hp: target.hp });
             }
@@ -137,7 +143,7 @@ export function registerHandlers(io: Server, socket: Socket) {
             damageLog[data.targetId][socket.id] = (damageLog[data.targetId][socket.id] ?? 0) + BULLET_DAMAGE;
 
             if (target.hp <= 0) {
-                killPlayer(io, target.id, socket.id);
+                killPlayer(io, target.id, socket.id, 'bullet');
             } else {
                 io.emit('player_hit', { id: target.id, hp: target.hp });
             }

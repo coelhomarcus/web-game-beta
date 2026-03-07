@@ -4,7 +4,8 @@ import type { PlayerState } from "../types";
 import { PLAYER_HEIGHT, INVINCIBLE_TIME } from "../config";
 import { camera } from "../scene/setup";
 import {
-  otherPlayers, addOtherPlayer, removeOtherPlayer, flashPlayerHit, startInvincibleBlink,
+  otherPlayers, addOtherPlayer, removeOtherPlayer, flashPlayerHit,
+  startInvincibleBlink, triggerRagdoll, cleanupRagdoll, isRagdollActive,
 } from "../player/PlayerModel";
 import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
@@ -73,6 +74,11 @@ export function setupSocketEvents() {
       const mesh = otherPlayers[id];
       if (!mesh) continue;
       const p = players[id];
+      // Don't touch visibility or transforms while ragdoll is active
+      if (isRagdollActive(id)) {
+        if (allStats[id]) allStats[id].name = p.name;
+        continue;
+      }
       mesh.visible = !p.isDead;
       if (!p.isDead) {
         mesh.position.lerp(
@@ -95,7 +101,10 @@ export function setupSocketEvents() {
     } else flashPlayerHit(data.id);
   });
 
-  socket.on("player_killed", (data: { victim: string; killer: string; assist?: string }) => {
+  socket.on("player_killed", (data: {
+    victim: string; killer: string; assist?: string;
+    cause?: string; explosionPos?: { x: number; y: number; z: number };
+  }) => {
     if (allStats[data.killer]) allStats[data.killer].kills++;
     if (allStats[data.victim]) allStats[data.victim].deaths++;
     if (data.assist && allStats[data.assist]) allStats[data.assist].assists++;
@@ -112,7 +121,8 @@ export function setupSocketEvents() {
       controls.unlock();
       deathScreen.style.display = "flex";
     } else {
-      if (otherPlayers[data.victim]) otherPlayers[data.victim].visible = false;
+      const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
+      triggerRagdoll(data.victim, cause, data.explosionPos);
       if (data.killer === myId) {
         const kills = allStats[myId]?.kills ?? 0;
         hudKillsVal.textContent = String(kills);
@@ -130,6 +140,7 @@ export function setupSocketEvents() {
       controls.lock();
       startLocalInvincibleBlink(INVINCIBLE_TIME);
     } else if (otherPlayers[p.id]) {
+      cleanupRagdoll(p.id);
       otherPlayers[p.id].position.set(p.position.x, p.position.y, p.position.z);
       otherPlayers[p.id].visible = true;
       startInvincibleBlink(p.id, INVINCIBLE_TIME);

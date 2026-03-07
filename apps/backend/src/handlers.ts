@@ -10,6 +10,9 @@ import {
   BULLET_DAMAGE,
   RESPAWN_TIME,
   INVINCIBLE_TIME,
+  MAP_HALF_SIZE,
+  PLAYER_NAME_MAX_LEN,
+  DEFAULT_PLAYER_NAME,
 } from "./config";
 
 const players: Record<string, PlayerState> = {};
@@ -25,6 +28,14 @@ const invincibleTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
 export function getPlayers(): Record<string, PlayerState> {
   return players;
+}
+
+function sanitizePlayerName(name: string | undefined): string {
+  return (name || DEFAULT_PLAYER_NAME).trim().slice(0, PLAYER_NAME_MAX_LEN) || DEFAULT_PLAYER_NAME;
+}
+
+function clampMapCoord(v: number): number {
+  return Math.max(-MAP_HALF_SIZE, Math.min(MAP_HALF_SIZE, v));
 }
 
 function scheduleRespawn(io: Server, id: string) {
@@ -80,6 +91,34 @@ function killPlayer(
   scheduleRespawn(io, victimId);
 }
 
+function handleGrenadeExplosion(io: Server, throwerId: string, ep: Vec3) {
+  io.emit("grenade_explode", { position: ep, throwerId });
+
+  for (const id in players) {
+    const target = players[id];
+    if (target.isDead || target.isInvincible) continue;
+
+    const dx = target.position.x - ep.x;
+    const dy = target.position.y - ep.y;
+    const dz = target.position.z - ep.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist > BLAST_RADIUS) continue;
+
+    const t = 1 - dist / BLAST_RADIUS;
+    const dmg = Math.round(MIN_DAMAGE + t * (MAX_DAMAGE - MIN_DAMAGE));
+    target.hp = Math.max(0, target.hp - dmg);
+
+    if (!damageLog[id]) damageLog[id] = {};
+    damageLog[id][throwerId] = (damageLog[id][throwerId] ?? 0) + dmg;
+
+    if (target.hp <= 0) {
+      killPlayer(io, id, throwerId, "grenade", ep);
+    } else {
+      io.emit("player_hit", { id, hp: target.hp, damage: dmg });
+    }
+  }
+}
+
 export function registerHandlers(io: Server, socket: Socket) {
   if (Object.keys(players).length >= MAX_PLAYERS) {
     socket.emit("server_full", {
@@ -93,7 +132,7 @@ export function registerHandlers(io: Server, socket: Socket) {
 
   players[socket.id] = {
     id: socket.id,
-    name: "Anonimo",
+    name: DEFAULT_PLAYER_NAME,
     position: getRandomSpawn(),
     rotation: { x: 0, y: 0, z: 0 },
     color:
@@ -116,15 +155,15 @@ export function registerHandlers(io: Server, socket: Socket) {
 
   socket.on("set_name", (data: { name: string }) => {
     if (players[socket.id]) {
-      players[socket.id].name = (data.name || "Anonimo").slice(0, 16).trim();
+      players[socket.id].name = sanitizePlayerName(data.name);
     }
   });
 
   socket.on("update_state", (data: { position: Vec3; rotation: Vec3 }) => {
     if (players[socket.id] && !players[socket.id].isDead) {
       const pos = { ...data.position };
-      pos.x = Math.max(-49, Math.min(49, pos.x));
-      pos.z = Math.max(-49, Math.min(49, pos.z));
+      pos.x = clampMapCoord(pos.x);
+      pos.z = clampMapCoord(pos.z);
       for (const box of MAP_BOXES) resolveBoxCollision(pos, box);
       players[socket.id].position = pos;
       players[socket.id].rotation = data.rotation;
@@ -133,6 +172,7 @@ export function registerHandlers(io: Server, socket: Socket) {
 
   socket.on("shout", (data: { origin: Vec3; forward: Vec3 }) => {
     const SHOUT_RANGE = 5; // metres
+    const SHOUT_RANGE_SQ = SHOUT_RANGE * SHOUT_RANGE;
     const SHOUT_DAMAGE = 40;
     const KNOCK_H = 26; // horizontal impulse magnitude
     const KNOCK_V = 14; // vertical impulse
@@ -143,17 +183,21 @@ export function registerHandlers(io: Server, socket: Socket) {
     const fx = forward.x / fLen;
     const fz = forward.z / fLen;
 
-    for (const [id, target] of Object.entries(players)) {
+    for (const id in players) {
+      const target = players[id];
       if (id === socket.id) continue;
       if (target.isDead || target.isInvincible) continue;
 
       const dx = target.position.x - origin.x;
       const dz = target.position.z - origin.z;
-      const dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist > SHOUT_RANGE) continue;
+      const distSq = dx * dx + dz * dz;
+      if (distSq > SHOUT_RANGE_SQ) continue;
+
+      const dist = Math.sqrt(distSq) || 1;
+      const invDist = 1 / dist;
 
       // Must be in front: dot(forward, dir_to_target) > 0
-      const dot = (dx / (dist || 1)) * fx + (dz / (dist || 1)) * fz;
+      const dot = dx * invDist * fx + dz * invDist * fz;
       if (dot <= 0) continue;
 
       target.hp = Math.max(0, target.hp - SHOUT_DAMAGE);
@@ -163,11 +207,10 @@ export function registerHandlers(io: Server, socket: Socket) {
       damageLog[id][socket.id] = (damageLog[id][socket.id] ?? 0) + SHOUT_DAMAGE;
 
       // Knockback impulse direction (push away from caster)
-      const dirLen = dist || 1;
       const knockback: Vec3 = {
-        x: (dx / dirLen) * KNOCK_H,
+        x: dx * invDist * KNOCK_H,
         y: KNOCK_V,
-        z: (dz / dirLen) * KNOCK_H,
+        z: dz * invDist * KNOCK_H,
       };
 
       if (target.hp <= 0) {
@@ -185,31 +228,7 @@ export function registerHandlers(io: Server, socket: Socket) {
   });
 
   socket.on("grenade_throw", (data: { explosionPos: Vec3 }) => {
-    const ep = data.explosionPos;
-    io.emit("grenade_explode", { position: ep, throwerId: socket.id });
-
-    for (const [id, target] of Object.entries(players)) {
-      if (target.isDead || target.isInvincible) continue;
-      const dx = target.position.x - ep.x;
-      const dy = target.position.y - ep.y;
-      const dz = target.position.z - ep.z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      if (dist > BLAST_RADIUS) continue;
-
-      const t = 1 - dist / BLAST_RADIUS;
-      const dmg = Math.round(MIN_DAMAGE + t * (MAX_DAMAGE - MIN_DAMAGE));
-      target.hp = Math.max(0, target.hp - dmg);
-
-      // Track damage for assist
-      if (!damageLog[id]) damageLog[id] = {};
-      damageLog[id][socket.id] = (damageLog[id][socket.id] ?? 0) + dmg;
-
-      if (target.hp <= 0) {
-        killPlayer(io, id, socket.id, "grenade", ep);
-      } else {
-        io.emit("player_hit", { id, hp: target.hp });
-      }
-    }
+    handleGrenadeExplosion(io, socket.id, data.explosionPos);
   });
 
   socket.on("weapon_switch", (data: { weaponId: string }) => {
@@ -221,34 +240,6 @@ export function registerHandlers(io: Server, socket: Socket) {
 
   socket.on("grenade_launched", (data: { origin: Vec3; velocity: Vec3 }) => {
     socket.broadcast.emit("grenade_launched", data);
-  });
-
-  socket.on("grenade_throw", (data: { explosionPos: Vec3 }) => {
-    const ep = data.explosionPos;
-    io.emit("grenade_explode", { position: ep, throwerId: socket.id });
-
-    for (const [id, target] of Object.entries(players)) {
-      if (target.isDead || target.isInvincible) continue;
-      const dx = target.position.x - ep.x;
-      const dy = target.position.y - ep.y;
-      const dz = target.position.z - ep.z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      if (dist > BLAST_RADIUS) continue;
-
-      const t = 1 - dist / BLAST_RADIUS;
-      const dmg = Math.round(MIN_DAMAGE + t * (MAX_DAMAGE - MIN_DAMAGE));
-      target.hp = Math.max(0, target.hp - dmg);
-
-      // Track damage for assist
-      if (!damageLog[id]) damageLog[id] = {};
-      damageLog[id][socket.id] = (damageLog[id][socket.id] ?? 0) + dmg;
-
-      if (target.hp <= 0) {
-        killPlayer(io, id, socket.id, "grenade", ep);
-      } else {
-        io.emit("player_hit", { id, hp: target.hp, damage: dmg });
-      }
-    }
   });
 
   socket.on(

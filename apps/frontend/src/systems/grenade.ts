@@ -11,11 +11,16 @@ interface ActiveGrenade {
   fuse: number;
 }
 
+interface GrenadeStepResult {
+  exploded: boolean;
+}
+
 let activeGrenade: ActiveGrenade | null = null;
 let grenadeCooldown = 0;
 
 // Remote grenades (visual only, thrown by other players)
 const remoteGrenades: ActiveGrenade[] = [];
+const _tmpGrenadePos = new THREE.Vector3();
 
 export function cleanupRemoteGrenades() {
   // Remove all remote grenade meshes immediately (called when server sends grenade_explode)
@@ -132,47 +137,9 @@ export function updateGrenade(delta: number) {
 
   if (activeGrenade) {
     const g = activeGrenade;
-    g.fuse -= delta;
-
-    g.vel.y += GRENADE_GRAVITY * delta;
-
-    const nextGPos = g.mesh.position.clone().addScaledVector(g.vel, delta);
-
-    if (nextGPos.y <= 0.12) {
-      nextGPos.y = 0.12;
-      g.vel.y = Math.abs(g.vel.y) * 0.35;
-      g.vel.x *= 0.6;
-      g.vel.z *= 0.6;
-      if (Math.abs(g.vel.y) < 0.5) g.vel.y = 0;
-    }
-
-    for (const box of mapBlocks) {
-      const geo = box.geometry as THREE.BoxGeometry;
-      const hw = geo.parameters.width / 2 + 0.15;
-      const hh = geo.parameters.height / 2 + 0.15;
-      const hd = geo.parameters.depth / 2 + 0.15;
-      const bp = box.position;
-      if (
-        Math.abs(nextGPos.x - bp.x) < hw &&
-        Math.abs(nextGPos.y - bp.y) < hh &&
-        Math.abs(nextGPos.z - bp.z) < hd
-      ) {
-        const overlapX = hw - Math.abs(nextGPos.x - bp.x);
-        const overlapZ = hd - Math.abs(nextGPos.z - bp.z);
-        if (overlapX < overlapZ) {
-          nextGPos.x = g.mesh.position.x;
-          g.vel.x *= -0.4;
-        } else {
-          nextGPos.z = g.mesh.position.z;
-          g.vel.z *= -0.4;
-        }
-      }
-    }
-
-    g.mesh.position.copy(nextGPos);
-
-    if (g.fuse <= 0) {
-      const ep = g.mesh.position.clone();
+    const step = _stepGrenade(g, delta);
+    if (step.exploded) {
+      const ep = g.mesh.position;
       scene.remove(g.mesh);
       activeGrenade = null;
 
@@ -185,47 +152,57 @@ export function updateGrenade(delta: number) {
   // Update remote grenades (visual only)
   for (let i = remoteGrenades.length - 1; i >= 0; i--) {
     const g = remoteGrenades[i];
-    g.fuse -= delta;
-    g.vel.y += GRENADE_GRAVITY * delta;
-
-    const nextPos = g.mesh.position.clone().addScaledVector(g.vel, delta);
-
-    if (nextPos.y <= 0.12) {
-      nextPos.y = 0.12;
-      g.vel.y = Math.abs(g.vel.y) * 0.35;
-      g.vel.x *= 0.6;
-      g.vel.z *= 0.6;
-      if (Math.abs(g.vel.y) < 0.5) g.vel.y = 0;
-    }
-
-    for (const box of mapBlocks) {
-      const geo = box.geometry as THREE.BoxGeometry;
-      const hw = geo.parameters.width / 2 + 0.15;
-      const hh = geo.parameters.height / 2 + 0.15;
-      const hd = geo.parameters.depth / 2 + 0.15;
-      const bp = box.position;
-      if (
-        Math.abs(nextPos.x - bp.x) < hw &&
-        Math.abs(nextPos.y - bp.y) < hh &&
-        Math.abs(nextPos.z - bp.z) < hd
-      ) {
-        const overlapX = hw - Math.abs(nextPos.x - bp.x);
-        const overlapZ = hd - Math.abs(nextPos.z - bp.z);
-        if (overlapX < overlapZ) {
-          nextPos.x = g.mesh.position.x;
-          g.vel.x *= -0.4;
-        } else {
-          nextPos.z = g.mesh.position.z;
-          g.vel.z *= -0.4;
-        }
-      }
-    }
-
-    g.mesh.position.copy(nextPos);
-
-    if (g.fuse <= 0) {
+    const step = _stepGrenade(g, delta);
+    if (step.exploded) {
       scene.remove(g.mesh);
       remoteGrenades.splice(i, 1);
+    }
+  }
+}
+
+function _stepGrenade(g: ActiveGrenade, delta: number): GrenadeStepResult {
+  g.fuse -= delta;
+  g.vel.y += GRENADE_GRAVITY * delta;
+
+  _tmpGrenadePos.copy(g.mesh.position).addScaledVector(g.vel, delta);
+
+  if (_tmpGrenadePos.y <= 0.12) {
+    _tmpGrenadePos.y = 0.12;
+    g.vel.y = Math.abs(g.vel.y) * 0.35;
+    g.vel.x *= 0.6;
+    g.vel.z *= 0.6;
+    if (Math.abs(g.vel.y) < 0.5) g.vel.y = 0;
+  }
+
+  _resolveMapCollision(_tmpGrenadePos, g);
+  g.mesh.position.copy(_tmpGrenadePos);
+
+  return { exploded: g.fuse <= 0 };
+}
+
+function _resolveMapCollision(nextPos: THREE.Vector3, g: ActiveGrenade): void {
+  for (let i = 0; i < mapBlocks.length; i++) {
+    const box = mapBlocks[i];
+    const geo = box.geometry as THREE.BoxGeometry;
+    const hw = geo.parameters.width / 2 + 0.15;
+    const hh = geo.parameters.height / 2 + 0.15;
+    const hd = geo.parameters.depth / 2 + 0.15;
+    const bp = box.position;
+
+    if (
+      Math.abs(nextPos.x - bp.x) < hw &&
+      Math.abs(nextPos.y - bp.y) < hh &&
+      Math.abs(nextPos.z - bp.z) < hd
+    ) {
+      const overlapX = hw - Math.abs(nextPos.x - bp.x);
+      const overlapZ = hd - Math.abs(nextPos.z - bp.z);
+      if (overlapX < overlapZ) {
+        nextPos.x = g.mesh.position.x;
+        g.vel.x *= -0.4;
+      } else {
+        nextPos.z = g.mesh.position.z;
+        g.vel.z *= -0.4;
+      }
     }
   }
 }

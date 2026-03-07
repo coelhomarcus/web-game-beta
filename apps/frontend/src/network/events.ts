@@ -37,10 +37,19 @@ import {
 import { addMessage } from "../ui/chat";
 
 let myId = "";
+let myColor = "";
 let playerName = "";
+
+const _tmpNetPos = new THREE.Vector3();
+const _tmpNetDir = new THREE.Vector3();
+const _tmpNetForce = new THREE.Vector3();
+const _tmpShoutOrigin = new THREE.Vector3();
 
 export function getMyId() {
   return myId;
+}
+export function getMyColor() {
+  return myColor;
 }
 export function getPlayerName() {
   return playerName;
@@ -71,6 +80,10 @@ export function setupSocketEvents() {
           assists: 0,
           color: me.color,
         };
+        myColor = me.color;
+        window.dispatchEvent(
+          new CustomEvent("local-player-inited", { detail: { color: me.color } }),
+        );
       }
       for (const id in data.players) {
         if (id !== myId) {
@@ -118,10 +131,8 @@ export function setupSocketEvents() {
       }
       mesh.visible = !p.isDead;
       if (!p.isDead) {
-        mesh.position.lerp(
-          new THREE.Vector3(p.position.x, p.position.y, p.position.z),
-          0.3,
-        );
+        _tmpNetPos.set(p.position.x, p.position.y, p.position.z);
+        mesh.position.lerp(_tmpNetPos, 0.3);
         mesh.rotation.y = p.rotation.y;
         const hg = mesh.getObjectByName("headGroup");
         if (hg)
@@ -212,10 +223,9 @@ export function setupSocketEvents() {
       origin: { x: number; y: number; z: number };
       direction: { x: number; y: number; z: number };
     }) => {
-      createVisualBullet(
-        new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z),
-        new THREE.Vector3(data.direction.x, data.direction.y, data.direction.z),
-      );
+      _tmpNetPos.set(data.origin.x, data.origin.y, data.origin.z);
+      _tmpNetDir.set(data.direction.x, data.direction.y, data.direction.z);
+      createVisualBullet(_tmpNetPos, _tmpNetDir);
     },
   );
 
@@ -229,10 +239,9 @@ export function setupSocketEvents() {
       origin: { x: number; y: number; z: number };
       velocity: { x: number; y: number; z: number };
     }) => {
-      spawnRemoteGrenade(
-        new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z),
-        new THREE.Vector3(data.velocity.x, data.velocity.y, data.velocity.z),
-      );
+      _tmpNetPos.set(data.origin.x, data.origin.y, data.origin.z);
+      _tmpNetDir.set(data.velocity.x, data.velocity.y, data.velocity.z);
+      spawnRemoteGrenade(_tmpNetPos, _tmpNetDir);
     },
   );
 
@@ -240,9 +249,8 @@ export function setupSocketEvents() {
     "grenade_explode",
     (data: { position: { x: number; y: number; z: number } }) => {
       cleanupRemoteGrenades();
-      explodeGrenade(
-        new THREE.Vector3(data.position.x, data.position.y, data.position.z),
-      );
+      _tmpNetPos.set(data.position.x, data.position.y, data.position.z);
+      explodeGrenade(_tmpNetPos);
     },
   );
 
@@ -253,11 +261,7 @@ export function setupSocketEvents() {
       origin: { x: number; y: number; z: number };
     }) => {
       // Determine victim world position: local player → camera, remote → mesh
-      const originVec = new THREE.Vector3(
-        data.origin.x,
-        data.origin.y,
-        data.origin.z,
-      );
+      _tmpShoutOrigin.set(data.origin.x, data.origin.y, data.origin.z);
       let targetPos: THREE.Vector3 | undefined;
       if (data.victimId === myId) {
         targetPos = camera.position.clone();
@@ -265,7 +269,7 @@ export function setupSocketEvents() {
         const mesh = otherPlayers[data.victimId];
         if (mesh) targetPos = mesh.position.clone();
       }
-      if (targetPos) spawnShoutAura(originVec, targetPos);
+      if (targetPos) spawnShoutAura(_tmpShoutOrigin, targetPos);
 
       if (data.victimId !== myId) {
         triggerShoutFling(data.victimId, data.origin);
@@ -276,9 +280,8 @@ export function setupSocketEvents() {
   socket.on(
     "shout_knockback",
     (data: { force: { x: number; y: number; z: number } }) => {
-      applyKnockback(
-        new THREE.Vector3(data.force.x, data.force.y, data.force.z),
-      );
+      _tmpNetForce.set(data.force.x, data.force.y, data.force.z);
+      applyKnockback(_tmpNetForce);
     },
   );
 

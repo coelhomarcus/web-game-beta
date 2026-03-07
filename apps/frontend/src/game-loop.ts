@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { PLAYER_HEIGHT } from "./config";
 import { scene, camera, renderer } from "./scene/setup";
+import { sceneFog } from "./scene/setup";
 import { socket } from "./network/socket";
 import { controls, getIsDead, getGameStarted } from "./systems/input";
 import { updatePhysics } from "./systems/physics";
@@ -20,6 +21,23 @@ import { updateStats } from "./ui/stats";
 
 const _fwd = new THREE.Vector3();
 let prevTime = performance.now();
+
+// ── Overview camera (start screen background) ─────────────────────────────────
+const overviewCam = new THREE.PerspectiveCamera(
+  85,
+  window.innerWidth / window.innerHeight,
+  0.5,
+  300,
+);
+let _overviewAngle = Math.PI * 0.25;
+const OVERVIEW_RADIUS = 8;  // near-top-down, slight orbit
+const OVERVIEW_HEIGHT = 30;
+const OVERVIEW_SPEED = 0.04; // rad/s — slow lazy orbit around map center
+
+window.addEventListener("resize", () => {
+  overviewCam.aspect = window.innerWidth / window.innerHeight;
+  overviewCam.updateProjectionMatrix();
+});
 
 export function animate() {
   requestAnimationFrame(animate);
@@ -63,5 +81,21 @@ export function animate() {
 
   updateMinimap();
   updateStats(delta);
-  renderer.render(scene, camera);
+
+  if (!getGameStarted()) {
+    // Slowly orbit the map top-down for the start screen background
+    _overviewAngle += delta * OVERVIEW_SPEED;
+    overviewCam.position.set(
+      Math.sin(_overviewAngle) * OVERVIEW_RADIUS,
+      OVERVIEW_HEIGHT,
+      Math.cos(_overviewAngle) * OVERVIEW_RADIUS,
+    );
+    overviewCam.lookAt(0, 0, 0);
+    // Disable fog — camera is above fog range, scene would be invisible
+    scene.fog = null;
+    renderer.render(scene, overviewCam);
+    scene.fog = sceneFog;
+  } else {
+    renderer.render(scene, camera);
+  }
 }

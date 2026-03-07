@@ -20,9 +20,11 @@ import {
   setPlayerName,
   getPlayerName,
   getMyId,
+  getMyColor,
 } from "./network/events";
 import { allStats } from "./ui/scoreboard";
 import { animate } from "./game-loop";
+import { sanitizePlayerName, DEFAULT_PLAYER_NAME } from "./utils/playerName";
 
 // Mount renderer
 document.getElementById("app")!.appendChild(renderer.domElement);
@@ -51,7 +53,7 @@ window.addEventListener("weapon-switched", () => {
   const w = getCurrentWeapon();
   const isAwp = w.id === "awp";
   fpWeapon = isAwp ? makeAwpModel(true) : makeWeapon(true);
-  fpArms = makeFirstPersonArms(isAwp ? "awp" : "rifle");
+  fpArms = makeFirstPersonArms(isAwp ? "awp" : "rifle", getMyColor() || undefined);
   camera.add(fpWeapon);
   camera.add(fpArms);
   setFpWeapon(fpWeapon);
@@ -59,6 +61,15 @@ window.addEventListener("weapon-switched", () => {
   // Broadcast weapon change to other players
   socket.emit("weapon_switch", { weaponId: w.id });
 });
+
+// Recreate FP arms with the server-assigned player color once we get it
+window.addEventListener("local-player-inited", ((e: CustomEvent) => {
+  camera.remove(fpArms);
+  const w = getCurrentWeapon();
+  fpArms = makeFirstPersonArms(w.id === "awp" ? "awp" : "rifle", e.detail.color);
+  camera.add(fpArms);
+  setFpArms(fpArms);
+}) as EventListener);
 
 // Refresh FP weapon once a GLB model finishes loading
 window.addEventListener("weapon-model-loaded", () => {
@@ -83,7 +94,7 @@ const nameInput = document.getElementById("name-input") as HTMLInputElement;
 const playBtn = document.getElementById("play-btn") as HTMLButtonElement;
 
 function startGame() {
-  const name = nameInput.value.trim().slice(0, 16) || "Anonimo";
+  const name = sanitizePlayerName(nameInput.value);
   setPlayerName(name);
   const myId = getMyId();
   if (myId) {
@@ -95,7 +106,7 @@ function startGame() {
 
 if (SKIP_START_SCREEN) {
   // Auto-start: hide screen and enter game immediately
-  setPlayerName("Anonimo");
+  setPlayerName(DEFAULT_PLAYER_NAME);
   lockAndStart();
 } else {
   playBtn.addEventListener("click", startGame);

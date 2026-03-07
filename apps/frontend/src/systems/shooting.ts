@@ -177,6 +177,10 @@ interface ActiveBullet {
 const activeBullets: ActiveBullet[] = [];
 const bulletGeo = new THREE.SphereGeometry(0.06, 6, 6);
 const matCache: Record<number, THREE.MeshBasicMaterial> = {};
+const _rayCenter = new THREE.Vector2(0, 0);
+const _tmpShootOrigin = new THREE.Vector3();
+const _tmpShootDir = new THREE.Vector3();
+const _shotTargets: THREE.Object3D[] = [];
 
 function getBulletMat(color: number): THREE.MeshBasicMaterial {
   if (!matCache[color])
@@ -259,9 +263,12 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
     playShootSound();
   }
 
-  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const allTargets = [...Object.values(otherPlayers), ...mapBlocks];
-  const hits = raycaster.intersectObjects(allTargets, true);
+  raycaster.setFromCamera(_rayCenter, camera);
+  _shotTargets.length = 0;
+  for (const id in otherPlayers) _shotTargets.push(otherPlayers[id]);
+  for (let i = 0; i < mapBlocks.length; i++) _shotTargets.push(mapBlocks[i]);
+
+  const hits = raycaster.intersectObjects(_shotTargets, true);
   const firstPlayerHit = hits.find((h) => findPlayerGroup(h.object) !== null);
   if (firstPlayerHit) {
     const wallHit = hits.find((h) =>
@@ -291,15 +298,19 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
     }
   }
 
-  const orig = new THREE.Vector3();
-  camera.getWorldPosition(orig);
-  orig.y -= 0.1;
-  const dir = new THREE.Vector3();
-  camera.getWorldDirection(dir);
-  createVisualBullet(orig, dir, w.bulletColor, w.bulletSpeed, w.bulletMaxLife);
+  camera.getWorldPosition(_tmpShootOrigin);
+  _tmpShootOrigin.y -= 0.1;
+  camera.getWorldDirection(_tmpShootDir);
+  createVisualBullet(
+    _tmpShootOrigin,
+    _tmpShootDir,
+    w.bulletColor,
+    w.bulletSpeed,
+    w.bulletMaxLife,
+  );
   socket.emit("shoot", {
-    origin: { x: orig.x, y: orig.y, z: orig.z },
-    direction: { x: dir.x, y: dir.y, z: dir.z },
+    origin: { x: _tmpShootOrigin.x, y: _tmpShootOrigin.y, z: _tmpShootOrigin.z },
+    direction: { x: _tmpShootDir.x, y: _tmpShootDir.y, z: _tmpShootDir.z },
     color: w.bulletColor,
   });
 }
@@ -324,13 +335,12 @@ export function updateBullets(delta: number) {
   for (let i = activeBullets.length - 1; i >= 0; i--) {
     const b = activeBullets[i];
     const step = b.speed * delta;
-    const nextPos = b.mesh.position.clone().addScaledVector(b.dir, step);
-    if (bulletHitsBlock(nextPos)) {
+    b.mesh.position.addScaledVector(b.dir, step);
+    if (bulletHitsBlock(b.mesh.position)) {
       scene.remove(b.mesh);
       activeBullets.splice(i, 1);
       continue;
     }
-    b.mesh.position.copy(nextPos);
     b.lifeTime += delta;
     if (b.lifeTime > b.maxLife || b.mesh.position.y <= 0) {
       scene.remove(b.mesh);

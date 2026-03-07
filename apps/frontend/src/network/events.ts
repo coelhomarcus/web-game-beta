@@ -16,6 +16,8 @@ import {
   isFlinging,
   showDamageNumber,
   swapOtherPlayerWeapon,
+  createLocalCorpse,
+  cleanupLocalCorpse,
 } from "../player/PlayerModel";
 import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
@@ -31,10 +33,12 @@ import { updateHudHp } from "../ui/hud";
 import { allStats, setMyIdRef } from "../ui/scoreboard";
 import {
   flashDamage,
+  showDamageDirection,
   showKillFeedEntry,
   startLocalInvincibleBlink,
 } from "../ui/overlays";
 import { addMessage } from "../ui/chat";
+import { triggerScreenShake } from "../systems/headBob";
 
 let myId = "";
 let myColor = "";
@@ -149,10 +153,24 @@ export function setupSocketEvents() {
 
   socket.on(
     "player_hit",
-    (data: { id: string; hp: number; damage?: number }) => {
+    (data: { id: string; hp: number; damage?: number; from?: { x: number; y: number; z: number } }) => {
       if (data.id === myId) {
         updateHudHp(data.hp);
         flashDamage();
+        triggerScreenShake(0.06);
+
+        // Direction indicator
+        if (data.from) {
+          const dx = data.from.x - camera.position.x;
+          const dz = data.from.z - camera.position.z;
+          // Camera forward and right in world XZ
+          const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+          const dotFwd   =  dx * fwd.x + dz * fwd.z; // positive = attacker in front
+          const dotRight =  dx * fwd.z - dz * fwd.x; // positive = attacker to right
+          // atan2(right, fwd): 0 = front (top), 90 = right, 180 = back (bottom)
+          const deg = THREE.MathUtils.radToDeg(Math.atan2(dotRight, dotFwd));
+          showDamageDirection(deg);
+        }
       } else {
         flashPlayerHit(data.id);
         showDamageNumber(data.id, data.damage ?? 25);
@@ -193,6 +211,13 @@ export function setupSocketEvents() {
         updateHudHp(0);
         controls.unlock();
         deathScreen.style.display = "flex";
+        const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
+        createLocalCorpse(
+          myColor || 0xc68642,
+          { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+          cause,
+          data.explosionPos,
+        );
       } else {
         const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
         triggerRagdoll(data.victim, cause, data.explosionPos);
@@ -202,6 +227,7 @@ export function setupSocketEvents() {
 
   socket.on("player_respawned", (p: PlayerState) => {
     if (p.id === myId) {
+      cleanupLocalCorpse();
       setIsDead(false);
       camera.position.set(p.position.x, PLAYER_HEIGHT, p.position.z);
       velocity.set(0, 0, 0);

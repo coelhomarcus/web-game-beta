@@ -14,6 +14,7 @@ import {
   updateFlings,
   updateFloatingDamageNumbers,
   updatePlayerAnimations,
+  getLocalCorpseGroup,
 } from "./player/PlayerModel";
 import { updateAbilityItems } from "./systems/abilities";
 import { removeBobOffset, applyBobOffset } from "./systems/headBob";
@@ -21,6 +22,19 @@ import { updateStats } from "./ui/stats";
 
 const _fwd = new THREE.Vector3();
 let prevTime = performance.now();
+
+// ── Death camera (third-person orbiting the local corpse) ─────────────────────
+const deathCam = new THREE.PerspectiveCamera(
+  70,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  300,
+);
+let _deathCamAngle = 0;
+let _wasDead = false;
+const DEATH_CAM_DIST = 5;
+const DEATH_CAM_HEIGHT = 2.5;
+const DEATH_CAM_ORBIT_SPEED = 0.3;
 
 // ── Overview camera (start screen background) ─────────────────────────────────
 const overviewCam = new THREE.PerspectiveCamera(
@@ -37,6 +51,8 @@ const OVERVIEW_SPEED = 0.04; // rad/s — slow lazy orbit around map center
 window.addEventListener("resize", () => {
   overviewCam.aspect = window.innerWidth / window.innerHeight;
   overviewCam.updateProjectionMatrix();
+  deathCam.aspect = window.innerWidth / window.innerHeight;
+  deathCam.updateProjectionMatrix();
 });
 
 export function animate() {
@@ -82,6 +98,20 @@ export function animate() {
   updateMinimap();
   updateStats(delta);
 
+  // ── Death camera: detect transition and orbit corpse ──────────────────────
+  if (isDead && !_wasDead) {
+    // Just died — initialize death cam angle behind the player's look direction
+    const camFwd = _fwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    _deathCamAngle = Math.atan2(-camFwd.x, -camFwd.z);
+    // Hide FP weapon & arms (children of camera)
+    for (const child of camera.children) child.visible = false;
+  }
+  if (!isDead && _wasDead) {
+    // Just respawned — restore FP weapon & arms visibility
+    for (const child of camera.children) child.visible = true;
+  }
+  _wasDead = isDead;
+
   if (!getGameStarted()) {
     // Slowly orbit the map top-down for the start screen background
     _overviewAngle += delta * OVERVIEW_SPEED;
@@ -95,6 +125,22 @@ export function animate() {
     scene.fog = null;
     renderer.render(scene, overviewCam);
     scene.fog = sceneFog;
+  } else if (isDead) {
+    const corpse = getLocalCorpseGroup();
+    if (corpse) {
+      _deathCamAngle += delta * DEATH_CAM_ORBIT_SPEED;
+      deathCam.position.set(
+        corpse.position.x + Math.sin(_deathCamAngle) * DEATH_CAM_DIST,
+        corpse.position.y + DEATH_CAM_HEIGHT,
+        corpse.position.z + Math.cos(_deathCamAngle) * DEATH_CAM_DIST,
+      );
+      deathCam.lookAt(
+        corpse.position.x,
+        corpse.position.y + 0.5,
+        corpse.position.z,
+      );
+    }
+    renderer.render(scene, deathCam);
   } else {
     renderer.render(scene, camera);
   }

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { scene, camera } from "../scene/setup";
 import { socket } from "../network/socket";
 import { playShoutSound, playShoutChargeSound } from "./audio";
+import { triggerScreenShake } from "./headBob";
 import type { Ability } from "../types";
 
 const SHOUT_CHARGE_TIME = 1.0;
@@ -42,6 +43,7 @@ function _fireShout(): void {
   _updateCooldownHud();
 
   playShoutSound();
+  triggerScreenShake(2.0);
   showAbilityFeed("DOVAH GRITO!");
 }
 

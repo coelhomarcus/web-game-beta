@@ -29,6 +29,43 @@ export function flashDamage() {
   dmgTimeout = setTimeout(() => damageOverlay.classList.remove("active"), 300);
 }
 
+// ─── Damage direction indicator ───────────────────────────────────────────────
+const dmgIndicatorContainer = document.createElement("div");
+dmgIndicatorContainer.id = "damage-direction";
+document.body.appendChild(dmgIndicatorContainer);
+
+interface ActiveIndicator {
+  el: HTMLElement;
+  timer: ReturnType<typeof setTimeout>;
+}
+const activeIndicators: ActiveIndicator[] = [];
+
+/**
+ * Show a red arrow around the crosshair pointing toward the attacker.
+ * @param angleDeg  Angle in degrees (0 = top / north on screen). Caller
+ *                  computes this from world positions + camera yaw.
+ */
+export function showDamageDirection(angleDeg: number) {
+  const el = document.createElement("div");
+  el.className = "dmg-arrow";
+  el.style.transform = `rotate(${angleDeg}deg) translateY(-40px)`;
+  dmgIndicatorContainer.appendChild(el);
+
+  // Trigger enter animation
+  requestAnimationFrame(() => el.classList.add("active"));
+
+  const timer = setTimeout(() => {
+    el.classList.add("fade-out");
+    setTimeout(() => {
+      dmgIndicatorContainer.removeChild(el);
+      const idx = activeIndicators.findIndex((a) => a.el === el);
+      if (idx !== -1) activeIndicators.splice(idx, 1);
+    }, 300);
+  }, 800);
+
+  activeIndicators.push({ el, timer });
+}
+
 // Invincibility overlay (local player) — steady blue border
 const invincibleOverlay = document.createElement("div");
 invincibleOverlay.id = "invincible-overlay";

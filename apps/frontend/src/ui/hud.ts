@@ -1,5 +1,4 @@
 import type { WeaponDef } from "../systems/shooting";
-import { WEAPONS } from "../systems/shooting";
 
 const hud = document.createElement("div");
 hud.id = "hud";
@@ -26,10 +25,10 @@ hud.innerHTML = `
         <span class="wkey active" id="wkey-1">1 M4A1</span>
         <span class="wkey" id="wkey-2">2 AWP</span>
       </div>
-      <span id="hud-weapon-name">${WEAPONS.ar.name}</span>
+      <span id="hud-weapon-name">M4A1</span>
     </div>
     <div id="hud-ammo">
-      <span id="hud-ammo-current">${WEAPONS.ar.magSize}</span><span id="hud-ammo-sep"> / </span><span id="hud-ammo-reserve">∞</span>
+      <span id="hud-ammo-current">20</span><span id="hud-ammo-sep"> / </span><span id="hud-ammo-reserve">∞</span>
     </div>
   </div>`;
 document.body.appendChild(hud);

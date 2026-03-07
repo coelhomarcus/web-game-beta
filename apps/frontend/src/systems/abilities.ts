@@ -34,8 +34,8 @@ function _fireShout(): void {
   forward.normalize();
 
   socket.emit("shout", {
-    origin:   { x: pos.x,     y: pos.y,     z: pos.z     },
-    forward:  { x: forward.x, y: 0,          z: forward.z },
+    origin: { x: pos.x, y: pos.y, z: pos.z },
+    forward: { x: forward.x, y: 0, z: forward.z },
   });
 
   playShoutSound();
@@ -48,28 +48,49 @@ function _fireShout(): void {
 // over ~0.45 s, then bursts into expanding rings on arrival.
 // Called from events.ts whenever a shout_blast is confirmed by the server.
 
+// ── Cached geometries & materials (avoid per-event allocations → no stutter) ─
+const _texture = new THREE.TextureLoader().load("/dovahpowerup.png");
+const _orbGeo = new THREE.SphereGeometry(0.55, 18, 14);
+const _glowGeo = new THREE.SphereGeometry(1.1, 18, 14);
+const _burstGeo = new THREE.TorusGeometry(0.4, 0.1, 8, 40);
+
+const _orbMatTemplate = new THREE.MeshBasicMaterial({
+  color: 0x44ccff,
+  transparent: true,
+  opacity: 0.8,
+  depthWrite: false,
+});
+const _glowMatTemplate = new THREE.MeshBasicMaterial({
+  color: 0x99eeff,
+  transparent: true,
+  opacity: 0.28,
+  depthWrite: false,
+  side: THREE.BackSide,
+});
+const _burstMatTemplate = new THREE.MeshBasicMaterial({
+  color: 0x44ccff,
+  transparent: true,
+  opacity: 0.9,
+  depthWrite: false,
+});
+const _itemSpriteMat = new THREE.SpriteMaterial({
+  map: _texture,
+  transparent: true,
+  depthWrite: false,
+  sizeAttenuation: true,
+});
+
 export function spawnShoutAura(
   origin: THREE.Vector3,
   targetPos: THREE.Vector3,
 ): void {
   // ── Orb body ───────────────────────────────────────────────────────────────
-  const orbMat = new THREE.MeshBasicMaterial({
-    color: 0x44ccff,
-    transparent: true,
-    opacity: 0.80,
-    depthWrite: false,
-  });
-  const orb = new THREE.Mesh(new THREE.SphereGeometry(0.55, 18, 14), orbMat);
+  const orbMat = _orbMatTemplate.clone();
+  const orb = new THREE.Mesh(_orbGeo, orbMat);
 
   // ── Outer glow shell (drawn on the back face so it halos the orb) ─────────
-  const glowMat = new THREE.MeshBasicMaterial({
-    color: 0x99eeff,
-    transparent: true,
-    opacity: 0.28,
-    depthWrite: false,
-    side: THREE.BackSide,
-  });
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(1.1, 18, 14), glowMat);
+  const glowMat = _glowMatTemplate.clone();
+  const glow = new THREE.Mesh(_glowGeo, glowMat);
   orb.add(glow);
 
   // ── Point light that illuminates nearby geometry ───────────────────────────
@@ -100,7 +121,7 @@ export function spawnShoutAura(
     orb.scale.setScalar(pulse);
 
     // Fade out the last 20 % of travel
-    orbMat.opacity = p > 0.8 ? 0.80 * (1 - (p - 0.8) / 0.2) : 0.80;
+    orbMat.opacity = p > 0.8 ? 0.8 * (1 - (p - 0.8) / 0.2) : 0.8;
     glowMat.opacity = p > 0.8 ? 0.28 * (1 - (p - 0.8) / 0.2) : 0.28;
 
     if (p < 1) {
@@ -119,16 +140,8 @@ function _spawnShoutBurst(pos: THREE.Vector3): void {
   for (let i = 0; i < BURST_RINGS; i++) {
     const delay = i * 0.07;
     setTimeout(() => {
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: 0x44ccff,
-        transparent: true,
-        opacity: 0.90,
-        depthWrite: false,
-      });
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.4, 0.10, 8, 40),
-        ringMat,
-      );
+      const ringMat = _burstMatTemplate.clone();
+      const ring = new THREE.Mesh(_burstGeo, ringMat);
       ring.position.copy(pos);
       ring.rotation.x = Math.PI / 2;
       scene.add(ring);
@@ -139,7 +152,7 @@ function _spawnShoutBurst(pos: THREE.Vector3): void {
         bt += 0.016;
         const bp = Math.min(bt / BDUR, 1);
         ring.scale.setScalar(1 + bp * 9);
-        ringMat.opacity = 0.90 * (1 - bp);
+        ringMat.opacity = 0.9 * (1 - bp);
         if (bp < 1) requestAnimationFrame(bust);
         else scene.remove(ring);
       };
@@ -200,38 +213,29 @@ const PICKUP_RADIUS = 1.8;
  * Each [x, z] coordinate has DROP_CHANCE probability of actually spawning.
  */
 const SPAWN_POINTS: Array<[number, number]> = [
-  [  8,   5 ],
-  [ -8,   5 ],
-  [ 12,  -8 ],
-  [ -12, -6 ],
-  [  0,  12 ],
-  [ -5, -12 ],
-  [  6,  -6 ],
-  [ -10, 10 ],
-  [ 15,   0 ],
-  [  0, -15 ],
-  [ -15,  3 ],
-  [  3,  15 ],
+  [8, 5],
+  [-8, 5],
+  [12, -8],
+  [-12, -6],
+  [0, 12],
+  [-5, -12],
+  [6, -6],
+  [-10, 10],
+  [15, 0],
+  [0, -15],
+  [-15, 3],
+  [3, 15],
 ];
 
-const DROP_CHANCE = 0.60; // 60 % per spawn point
+const DROP_CHANCE = 0.6; // 60 % per spawn point
 
 // ─── Visual factory ──────────────────────────────────────────────────────────
-
-const _texture = new THREE.TextureLoader().load("/dovahpowerup.png");
 
 function makeItemMesh(): THREE.Group {
   const group = new THREE.Group();
 
   // Billboard sprite using the PNG
-  const sprite = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: _texture,
-      transparent: true,
-      depthWrite: false,
-      sizeAttenuation: true,
-    }),
-  );
+  const sprite = new THREE.Sprite(_itemSpriteMat.clone());
   sprite.name = "sprite";
   sprite.scale.set(0.9, 0.9, 1);
   group.add(sprite);
@@ -245,19 +249,21 @@ function makeItemMesh(): THREE.Group {
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 
-const MIN_ACTIVE_ITEMS = 2;        // always keep at least this many on the map
-const RESPAWN_CHECK_INTERVAL = 5;  // seconds between respawn checks
+const MIN_ACTIVE_ITEMS = 2; // always keep at least this many on the map
+const RESPAWN_CHECK_INTERVAL = 5; // seconds between respawn checks
 
 let _respawnTimer = 0;
 
 function _spawnOneItem(): void {
   // Pick a random spawn point that has no active item nearby
-  const available = SPAWN_POINTS.filter(([sx, sz]) =>
-    !droppedItems.some(
-      (d) => !d.pickedUp &&
-        Math.abs(d.group.position.x - sx) < 1 &&
-        Math.abs(d.group.position.z - sz) < 1,
-    ),
+  const available = SPAWN_POINTS.filter(
+    ([sx, sz]) =>
+      !droppedItems.some(
+        (d) =>
+          !d.pickedUp &&
+          Math.abs(d.group.position.x - sx) < 1 &&
+          Math.abs(d.group.position.z - sz) < 1,
+      ),
   );
   if (available.length === 0) return;
 

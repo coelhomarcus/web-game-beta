@@ -554,14 +554,18 @@ body.scoped #crosshair {
   outline: 3px solid transparent;
   background-image: conic-gradient(
     rgba(255, 220, 80, 0.85) calc(var(--charge-pct, 0) * 360deg),
-    rgba(255,255,255,0.08) 0deg
+    rgba(255, 255, 255, 0.08) 0deg
   );
   animation: charge-flicker 0.15s steps(2) infinite;
 }
 
 @keyframes charge-flicker {
-  0%   { filter: brightness(1);   }
-  100% { filter: brightness(1.25); }
+  0% {
+    filter: brightness(1);
+  }
+  100% {
+    filter: brightness(1.25);
+  }
 }
 
 .hud-ability-slot.empty {
@@ -569,8 +573,13 @@ body.scoped #crosshair {
 }
 
 @keyframes ability-pulse {
-  0%, 100% { box-shadow: 0 0 6px rgba(170, 68, 255, 0.35); }
-  50%       { box-shadow: 0 0 14px rgba(200, 110, 255, 0.75); }
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(170, 68, 255, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(200, 110, 255, 0.75);
+  }
 }
 
 #hud-ability-icon {
@@ -938,8 +947,9 @@ body.scoped #crosshair {
 /* ── Chat ──────────────────────────────────────────────────────────────────── */
 #chat-container {
   position: fixed;
-  bottom: 116px;
+  top: 50%;
   left: 20px;
+  transform: translateY(-50%);
   width: 360px;
   z-index: 110;
   pointer-events: none;
@@ -1234,4 +1244,23 @@ body.scoped #crosshair {
   background: rgba(103, 232, 249, 0.15);
   border-color: rgba(103, 232, 249, 0.4);
   color: #67e8f9;
+}
+
+/* ── FPS / Ping HUD ─────────────────────────────────────────────────────────── */
+#hud-stats {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  padding: 4px 14px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #e0e0e0;
+  font-family: "Rajdhani", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  white-space: nowrap;
 }

@@ -55,10 +55,14 @@ controls.addEventListener("unlock", () => {
   // Exit scope when ESC is pressed (AWP)
   exitScope();
   // Show settings menu when pointer is unlocked during gameplay
-  if (gameStarted && !isDead) {
+  if (gameStarted && !isDead && !isChatOpen()) {
     showSettings(() => {
       controls.pointerSpeed = getNormalSensitivity();
-      controls.lock();
+      try {
+        controls.lock();
+      } catch {
+        /* browser may reject lock */
+      }
     });
   }
 });
@@ -95,16 +99,6 @@ window.addEventListener("keydown", (e) => {
     return;
   }
   switch (e.code) {
-    case "KeyW": setMoveForward(true); break;
-    case "KeyA": setMoveLeft(true); break;
-    case "KeyS": setMoveBackward(true); break;
-    case "KeyD": setMoveRight(true); break;
-    case "Space": if (isOnGround) setWantsJump(true); break;
-    case "KeyQ": throwGrenade(controls, isDead); break;
-    case "KeyZ": if (!isDead) activateAbility(); break;
-    case "KeyR": startReload(); break;
-    case "Digit1": switchWeapon("ar"); break;
-    case "Digit2": switchWeapon("awp"); break;
     case "KeyW":
       setMoveForward(true);
       break;
@@ -122,6 +116,9 @@ window.addEventListener("keydown", (e) => {
       break;
     case "KeyQ":
       throwGrenade(controls, isDead);
+      break;
+    case "KeyZ":
+      if (!isDead) activateAbility();
       break;
     case "KeyR":
       startReload();
@@ -170,7 +167,11 @@ window.addEventListener("mousedown", (e) => {
       if (isSettingsOpen()) {
         return; // let the settings menu handle clicks
       }
-      controls.lock();
+      try {
+        controls.lock();
+      } catch {
+        /* browser may reject lock */
+      }
       return;
     }
     handleShoot(isDead, controls);
@@ -187,5 +188,9 @@ export function lockAndStart() {
   gameStarted = true;
   startScreen.style.display = "none";
   controls.pointerSpeed = getNormalSensitivity();
-  controls.lock();
+  try {
+    controls.lock();
+  } catch {
+    /* browser may reject lock */
+  }
 }

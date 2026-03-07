@@ -8,14 +8,15 @@ import { updateBullets, updateAmmo } from "./systems/shooting";
 import { updateGrenade } from "./systems/grenade";
 import { updateMinimap } from "./ui/minimap";
 import { getMyId } from "./network/events";
-import { updateRagdolls, updateFlings } from "./player/PlayerModel";
-import { updateAbilityItems } from "./systems/abilities";
 import {
   updateRagdolls,
+  updateFlings,
   updateFloatingDamageNumbers,
   updatePlayerAnimations,
 } from "./player/PlayerModel";
+import { updateAbilityItems } from "./systems/abilities";
 import { removeBobOffset, applyBobOffset } from "./systems/headBob";
+import { updateStats } from "./ui/stats";
 
 const _fwd = new THREE.Vector3();
 let prevTime = performance.now();
@@ -61,5 +62,6 @@ export function animate() {
   updateFloatingDamageNumbers(delta);
 
   updateMinimap();
+  updateStats(delta);
   renderer.render(scene, camera);
 }

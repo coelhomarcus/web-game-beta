@@ -48,7 +48,7 @@ const activeIndicators: ActiveIndicator[] = [];
 export function showDamageDirection(angleDeg: number) {
   const el = document.createElement("div");
   el.className = "dmg-arrow";
-  el.style.transform = `rotate(${angleDeg}deg) translateY(-40px)`;
+  el.style.transform = `rotate(${angleDeg}deg)`;
   dmgIndicatorContainer.appendChild(el);
 
   // Trigger enter animation

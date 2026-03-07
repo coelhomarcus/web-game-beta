@@ -130,3 +130,54 @@ _fusrodahAudio.volume = 0.3;
 export function playShoutSound() {
   // Audio was triggered by playShoutChargeSound on Z press — nothing to do here.
 }
+
+/** Sharp metallic slash sound for katana normal attack. */
+export function playKatanaSlashSound() {
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const t = audioCtx.currentTime;
+
+  // High-pitched metallic swish
+  const swish = audioCtx.createOscillator();
+  const swishGain = audioCtx.createGain();
+  swish.type = "sawtooth";
+  swish.frequency.setValueAtTime(2200, t);
+  swish.frequency.exponentialRampToValueAtTime(400, t + 0.12);
+  swishGain.gain.setValueAtTime(0.35, t);
+  swishGain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+  swish.connect(swishGain);
+  swishGain.connect(audioCtx.destination);
+  swish.start(t);
+  swish.stop(t + 0.15);
+
+  // Low body thud
+  const thud = audioCtx.createOscillator();
+  const thudGain = audioCtx.createGain();
+  thud.type = "sine";
+  thud.frequency.setValueAtTime(120, t);
+  thud.frequency.exponentialRampToValueAtTime(40, t + 0.1);
+  thudGain.gain.setValueAtTime(0.25, t);
+  thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  thud.connect(thudGain);
+  thudGain.connect(audioCtx.destination);
+  thud.start(t);
+  thud.stop(t + 0.1);
+}
+
+/** Rising charge sound for katana leap attack (right-click hold). */
+export function playKatanaChargeSound() {
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const t = audioCtx.currentTime;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(200, t);
+  osc.frequency.exponentialRampToValueAtTime(800, t + 0.6);
+  gain.gain.setValueAtTime(0.2, t);
+  gain.gain.linearRampToValueAtTime(0.4, t + 0.5);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + 0.65);
+}

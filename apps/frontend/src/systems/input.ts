@@ -1,6 +1,6 @@
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
-import * as THREE from "three";
 import { camera } from "../scene/setup";
+import { addMouseDelta } from "./cameraLook";
 import {
   setMoveForward,
   setMoveBackward,
@@ -8,6 +8,7 @@ import {
   setMoveRight,
   setWantsJump,
   canJump,
+  startSlide,
 } from "./physics";
 import {
   handleShoot,
@@ -15,6 +16,10 @@ import {
   switchWeapon,
   toggleScope,
   exitScope,
+  setMouseHeld,
+  getCurrentWeapon,
+  startKatanaCharge,
+  releaseKatanaCharge,
 } from "./shooting";
 import { throwGrenade } from "./grenade";
 import { activateAbility } from "./abilities";
@@ -32,11 +37,7 @@ export const controls = new PointerLockControls(camera, document.body);
 // Track yaw/pitch as plain numbers to avoid the unstable quaternion↔Euler
 // round-trip that causes random yaw flips near ±90° pitch ("flick" bug).
 // Also clamp per-frame deltas to reject browser spikes (tab-switch, first lock).
-const _lookEuler = new THREE.Euler(0, 0, 0, "YXZ");
-let _yaw = 0;
-let _pitch = 0;
 const MOUSE_SENS = 0.002;
-const MAX_PITCH = Math.PI / 2 - 0.05; // ~87° — safe distance from singularity
 const MAX_DELTA = 0.35; // reject single-frame movements larger than ~20° (spike)
 
 // Remove the built-in mousemove handler so it doesn't fight with ours
@@ -63,12 +64,7 @@ document.addEventListener("mousemove", (e) => {
   dx = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, dx));
   dy = Math.max(-MAX_DELTA, Math.min(MAX_DELTA, dy));
 
-  _yaw -= dx;
-  _pitch -= dy;
-  _pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, _pitch));
-
-  _lookEuler.set(_pitch, _yaw, 0);
-  camera.quaternion.setFromEuler(_lookEuler);
+  addMouseDelta(-dx, -dy);
 });
 
 let gameStarted = false;
@@ -127,11 +123,34 @@ const SUPPRESS_KEYS = new Set([
   "F8",
   "F9",
   "F10",
-  "F11",
+  // "F11" intentionally excluded — used for fullscreen toggle
   "F12",
 ]);
 
+// Ctrl / Alt combos that conflict with gameplay keys — block while pointer is locked
+const CTRL_BLOCK = new Set([
+  "KeyW", // close tab
+  "KeyR", // reload page
+  "KeyT", // new tab
+  "KeyN", // new window
+  "KeyS", // save page
+  "KeyD", // bookmark
+  "KeyG", // find next
+  "KeyH", // history
+  "KeyJ", // downloads
+  "KeyL", // address bar
+  "KeyU", // view source
+  "KeyP", // print
+  "KeyO", // open file
+  "KeyQ", // quit browser (some browsers)
+]);
+
 window.addEventListener("keydown", (e) => {
+  // Block dangerous browser shortcuts while playing
+  if ((e.ctrlKey || e.metaKey) && CTRL_BLOCK.has(e.code) && controls.isLocked) {
+    e.preventDefault();
+    return;
+  }
   if (SUPPRESS_KEYS.has(e.code)) {
     e.preventDefault();
     return;
@@ -158,6 +177,10 @@ window.addEventListener("keydown", (e) => {
     case "Space":
       if (canJump()) setWantsJump(true);
       break;
+    case "ShiftLeft":
+    case "ShiftRight":
+      if (!e.repeat) startSlide();
+      break;
     case "KeyQ":
       throwGrenade(controls, isDead);
       break;
@@ -173,10 +196,21 @@ window.addEventListener("keydown", (e) => {
     case "Digit2":
       switchWeapon("awp");
       break;
+    case "Digit3":
+      switchWeapon("katana");
+      break;
     case "Tab":
       e.preventDefault();
       renderScoreboard();
       scoreboard.classList.add("visible");
+      break;
+    case "F11":
+      e.preventDefault();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
       break;
   }
 });
@@ -218,15 +252,35 @@ window.addEventListener("mousedown", (e) => {
       }
       return;
     }
+    setMouseHeld(true);
     handleShoot(isDead, controls);
   } else if (e.button === 2) {
-    // Right-click: toggle scope (AWP)
-    if (controls.isLocked && !isDead) toggleScope();
+    // Right-click: toggle scope (AWP) or start katana charge
+    if (controls.isLocked && !isDead) {
+      const w = getCurrentWeapon();
+      if (w.id === "katana") {
+        startKatanaCharge();
+      } else {
+        toggleScope();
+      }
+    }
   }
+});
+
+window.addEventListener("mouseup", (e) => {
+  if (e.button === 0) setMouseHeld(false);
+  if (e.button === 2) releaseKatanaCharge(isDead);
 });
 
 // Prevent context menu on right-click
 window.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// Warn before closing/refreshing tab while in-game
+window.addEventListener("beforeunload", (e) => {
+  if (gameStarted && !isDead) {
+    e.preventDefault();
+  }
+});
 
 export function lockAndStart() {
   gameStarted = true;

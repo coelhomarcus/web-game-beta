@@ -4,8 +4,12 @@ import { scene, camera, renderer } from "./scene/setup";
 import { sceneFog } from "./scene/setup";
 import { socket } from "./network/socket";
 import { controls, getIsDead, getGameStarted } from "./systems/input";
-import { updatePhysics } from "./systems/physics";
-import { updateBullets, updateAmmo } from "./systems/shooting";
+import {
+  updatePhysics,
+  isSliding,
+  getSlideHeightOffset,
+} from "./systems/physics";
+import { updateBullets, updateAmmo, updateKatanaCharge, updateKatanaLeap } from "./systems/shooting";
 import { updateGrenade } from "./systems/grenade";
 import { updateMinimap } from "./ui/minimap";
 import { getMyId } from "./network/events";
@@ -17,6 +21,7 @@ import {
   getLocalCorpseGroup,
 } from "./player/PlayerModel";
 import { updateAbilityItems } from "./systems/abilities";
+import { updateAmmoBoxes } from "./systems/ammoBoxes";
 import { removeBobOffset, applyBobOffset } from "./systems/headBob";
 import { updateStats } from "./ui/stats";
 
@@ -44,7 +49,7 @@ const overviewCam = new THREE.PerspectiveCamera(
   300,
 );
 let _overviewAngle = Math.PI * 0.25;
-const OVERVIEW_RADIUS = 8;  // near-top-down, slight orbit
+const OVERVIEW_RADIUS = 8; // near-top-down, slight orbit
 const OVERVIEW_HEIGHT = 30;
 const OVERVIEW_SPEED = 0.04; // rad/s — slow lazy orbit around map center
 
@@ -72,7 +77,8 @@ export function animate() {
     updatePhysics(controls, delta);
 
     if (myId) {
-      const bodyY = camera.position.y - PLAYER_HEIGHT + 1;
+      const bodyY =
+        camera.position.y - PLAYER_HEIGHT + 1 + getSlideHeightOffset();
       // Derive yaw/pitch from forward vector to avoid Euler decomposition flips
       const fwd = _fwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
       const yaw = Math.atan2(-fwd.x, -fwd.z);
@@ -80,6 +86,7 @@ export function animate() {
       socket.emit("update_state", {
         position: { x: camera.position.x, y: bodyY, z: camera.position.z },
         rotation: { x: pitch, y: yaw, z: 0 },
+        isSliding,
       });
     }
   }
@@ -88,10 +95,18 @@ export function animate() {
 
   updateBullets(delta);
   updateAmmo(delta);
+  updateKatanaCharge(delta);
+
+  // Drive katana leap movement
+  const leapMove = updateKatanaLeap(delta);
+  if (leapMove) {
+    camera.position.add(leapMove);
+  }
   updateGrenade(delta);
   updateRagdolls(delta);
   updateFlings(delta);
   updateAbilityItems(delta);
+  updateAmmoBoxes(delta);
   updatePlayerAnimations(delta);
   updateFloatingDamageNumbers(delta);
 

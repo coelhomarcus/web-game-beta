@@ -29,7 +29,7 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(200, 210, 230, 0.55);
+  background: rgba(200, 210, 230, 0.25);
   backdrop-filter: blur(8px);
 }
 
@@ -65,6 +65,7 @@ html {
   font-size: 20px;
   font-weight: 900;
   letter-spacing: 0.5px;
+  text-align: center;
 }
 
 .kirby-header-tabs {
@@ -517,7 +518,8 @@ html {
   transition: opacity 0.1s;
 }
 
-body.scoped #crosshair {
+body.scoped #crosshair,
+body.awp #crosshair {
   opacity: 0;
 }
 
@@ -573,24 +575,6 @@ body.scoped #crosshair {
   display: flex;
   flex-direction: column;
   gap: 5px;
-}
-
-#hud-hp-bar-bg {
-  width: 150px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-#hud-hp-bar {
-  height: 100%;
-  width: 100%;
-  background: #4ade80;
-  border-radius: 2px;
-  transition:
-    width 0.25s,
-    background 0.3s;
 }
 
 #hud-hp-bottom {
@@ -654,13 +638,18 @@ body.scoped #crosshair {
   text-transform: uppercase;
 }
 
-#hud-grenade-cd {
-  font-family: "Rajdhani", "Nunito", sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fbbf24;
-  min-width: 22px;
-  text-align: center;
+#hud-grenade.on-cooldown {
+  opacity: 1;
+  background-image: conic-gradient(
+    rgba(251, 191, 36, 0.85) calc(var(--grenade-cd-pct, 0) * 360deg),
+    rgba(255, 255, 255, 0.08) 0deg
+  );
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+}
+
+#hud-grenade:not(.on-cooldown) {
+  opacity: 1;
 }
 
 /* ── Ability slot (next to grenade) ─────────────────────────────────────────── */
@@ -710,6 +699,16 @@ body.scoped #crosshair {
   100% {
     filter: brightness(1.25);
   }
+}
+
+.hud-ability-slot.on-cooldown {
+  opacity: 1;
+  background-image: conic-gradient(
+    rgba(170, 68, 255, 0.75) calc(var(--cooldown-pct, 0) * 360deg),
+    rgba(255, 255, 255, 0.08) 0deg
+  );
+  border-color: rgba(170, 68, 255, 0.5);
+  box-shadow: 0 0 8px rgba(170, 68, 255, 0.25);
 }
 
 .hud-ability-slot.empty {
@@ -974,16 +973,18 @@ body.scoped #crosshair {
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
-  height: 18px;
-  margin-left: -2px;
-  margin-top: -58px;
-  background: rgba(255, 20, 20, 0.85);
-  border-radius: 2px;
-  transform-origin: 2px 58px;
+  width: 80px;
+  height: 80px;
+  margin-left: -40px;
+  margin-top: -40px;
+  border-radius: 50%;
+  border: 3.5px solid transparent;
+  border-top-color: rgba(255, 20, 20, 0.9);
+  transform-origin: center center;
   opacity: 0;
   transition: opacity 0.08s;
-  filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.6));
+  filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.5));
+  box-sizing: border-box;
 }
 
 .dmg-arrow.active {
@@ -1500,8 +1501,8 @@ body.scoped #crosshair {
 
 #minimap canvas {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 160px;
+  height: 160px;
 }
 
 /* ── Weapon selector HUD — Valorant style ─────────────────────────────────── */
@@ -1567,9 +1568,9 @@ body.scoped #crosshair {
   transform: translateX(-50%);
   z-index: 300;
   padding: 4px 14px;
-  border-radius: 6px;
+  border-radius: 2px;
   background: rgba(0, 0, 0, 0.55);
-  color: #e0e0e0;
+  color: #91db69;
   font-family: "Rajdhani", monospace;
   font-size: 13px;
   font-weight: 600;
@@ -1764,13 +1765,8 @@ body.scoped #crosshair {
 
 #face-crop-canvas {
   border-radius: 10px;
-  cursor: grab;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   touch-action: none;
-}
-
-#face-crop-canvas:active {
-  cursor: grabbing;
 }
 
 .face-crop-zoom-row {

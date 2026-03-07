@@ -6,9 +6,10 @@ import {
   otherPlayers,
   playerOriginalMaterial,
   playerCurrentNames,
+  networkTargets,
 } from "./playerState";
-import { FAL_3P, AWP_3P } from "./weaponConfig";
-import { makeWeapon, makeAwpModel } from "./weaponModels";
+import { FAL_3P, AWP_3P, KATANA_3P } from "./weaponConfig";
+import { makeWeapon, makeAwpModel, makeKatanaModel } from "./weaponModels";
 import { ARM_HOLD_LEFT, ARM_HOLD_RIGHT, walkState } from "./walkAnimation";
 import { cleanupRagdoll, triggerRagdoll } from "./ragdollSystem";
 import { stopInvincibleBlink } from "./playerEffects";
@@ -120,8 +121,8 @@ function buildPlayerBody(color: string | number): {
   grp.add(rightArm);
 
   // Legs
-  grp.add(makeLimb("leftLeg", 0.2, 0.6, 0.2, mat, -0.12, -0.4, 0, -0.3));
-  grp.add(makeLimb("rightLeg", 0.2, 0.6, 0.2, mat, 0.12, -0.4, 0, -0.3));
+  grp.add(makeLimb("leftLeg", 0.2, 0.6, 0.2, mat, -0.12, -0.35, 0, -0.3));
+  grp.add(makeLimb("rightLeg", 0.2, 0.6, 0.2, mat, 0.12, -0.35, 0, -0.3));
 
   return { grp, mat };
 }
@@ -134,15 +135,18 @@ export function addOtherPlayer(player: {
   color: string;
   position: { x: number; y: number; z: number };
   isDead: boolean;
+  weaponId?: string;
 }): void {
   const { grp, mat } = buildPlayerBody(player.color);
   playerOriginalMaterial[player.id] = mat;
 
   // Weapon (attached to torso group, aligned with hands)
-  const wep3p = makeWeapon(false);
+  const wId = (player.weaponId as "ar" | "awp" | "katana") || "ar";
+  const wep3p = wId === "katana" ? makeKatanaModel(false) : wId === "awp" ? makeAwpModel(false) : makeWeapon(false);
+  const cfg3p = wId === "katana" ? KATANA_3P : wId === "awp" ? AWP_3P : FAL_3P;
   wep3p.name = "weapon3p";
-  wep3p.userData.weaponId = "ar";
-  wep3p.position.set(...FAL_3P.position);
+  wep3p.userData.weaponId = wId;
+  wep3p.position.set(...cfg3p.position);
   grp.add(wep3p);
 
   grp.position.set(player.position.x, 1, player.position.z);
@@ -161,6 +165,7 @@ export function removeOtherPlayer(id: string): void {
   stopInvincibleBlink(id);
   cleanupRagdoll(id);
   walkState.delete(id);
+  networkTargets.delete(id);
   if (otherPlayers[id]) {
     scene.remove(otherPlayers[id]);
     delete otherPlayers[id];
@@ -187,19 +192,34 @@ export function applyPlayerColor(id: string, hex: string): void {
 /** Swap an other player's 3P weapon model (called on weapon_switch event). */
 export function swapOtherPlayerWeapon(
   id: string,
-  weaponId: "ar" | "awp",
+  weaponId: "ar" | "awp" | "katana",
 ): void {
   const grp = otherPlayers[id];
   if (!grp) return;
   const old = grp.getObjectByName("weapon3p");
   if (old) grp.remove(old);
-  const wep = weaponId === "awp" ? makeAwpModel(false) : makeWeapon(false);
-  const cfg3p = weaponId === "awp" ? AWP_3P : FAL_3P;
+  const wep = weaponId === "katana" ? makeKatanaModel(false) : weaponId === "awp" ? makeAwpModel(false) : makeWeapon(false);
+  const cfg3p = weaponId === "katana" ? KATANA_3P : weaponId === "awp" ? AWP_3P : FAL_3P;
   wep.name = "weapon3p";
   wep.userData.weaponId = weaponId;
   wep.position.set(...cfg3p.position);
   grp.add(wep);
 }
+
+// Debug: live-refresh all 3P katana models when tweaking transforms
+window.addEventListener("weapon-switched-debug-3p", () => {
+  for (const id of Object.keys(otherPlayers)) {
+    const grp = otherPlayers[id];
+    const old = grp.getObjectByName("weapon3p");
+    if (!old || old.userData.weaponId !== "katana") continue;
+    grp.remove(old);
+    const wep = makeKatanaModel(false);
+    wep.name = "weapon3p";
+    wep.userData.weaponId = "katana";
+    wep.position.set(...KATANA_3P.position);
+    grp.add(wep);
+  }
+});
 
 // ─── Local corpse (for death camera) ─────────────────────────────────────────
 

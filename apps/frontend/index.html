@@ -13,30 +13,71 @@
   </head>
 
   <body>
+    <!-- Floating character preview (right side, visible only on start screen) -->
+    <div id="character-preview-float"></div>
+
     <!-- Start screen -->
     <div id="start-screen">
       <div class="start-card">
-        <div class="start-title">FPS ARENA</div>
-        <div class="start-sub">Multiplayer · Tempo Real</div>
-        <div class="start-form">
-          <label for="name-input">Nome do Jogador</label>
-          <input
-            id="name-input"
-            type="text"
-            placeholder="Digite seu nome..."
-            maxlength="16"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button id="play-btn">ENTRAR</button>
+        <!-- Kirby header -->
+        <div class="kirby-header">
+          <span class="kirby-header-title">⚔️ FPS Arena</span>
         </div>
-        <div class="start-controls">
-          <span>WASD · Mover</span>
-          <span>Space · Pular</span>
-          <span>LMB · Atirar</span>
-          <span>TAB · Placar</span>
-          <span>ESC · Pausar</span>
-          <span>Enter · Chat</span>
+
+        <!-- Form body -->
+        <div class="kirby-body">
+          <div class="kirby-section-header teal">
+            <span class="kirby-section-icon">🎮</span>
+            <span class="kirby-section-title">CONFIGURAR PERSONAGEM</span>
+          </div>
+          <div class="start-form">
+            <div class="kirby-row">
+              <label for="name-input">NOME</label>
+              <input
+                id="name-input"
+                type="text"
+                placeholder="Digite seu nome..."
+                maxlength="16"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+            <div class="kirby-row alt face-upload-row">
+              <label>FOTO DO ROSTO</label>
+              <div class="face-upload-controls">
+                <img
+                  id="face-preview-thumb"
+                  class="face-preview-thumb"
+                  style="display: none"
+                  alt="face preview"
+                />
+                <button id="face-upload-btn" type="button">
+                  📷 Adicionar foto
+                </button>
+                <button
+                  id="face-remove-btn"
+                  type="button"
+                  style="display: none"
+                >
+                  ✕
+                </button>
+                <input
+                  id="face-file-input"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                />
+              </div>
+            </div>
+            <div class="kirby-row alt color-picker-row">
+              <label>COR DO PERSONAGEM</label>
+              <div class="color-picker-controls">
+                <input id="player-color-picker" type="color" value="#4a90e2" />
+                <span id="player-color-label">#4a90e2</span>
+              </div>
+            </div>
+            <button id="play-btn">▶ ENTRAR</button>
+          </div>
         </div>
       </div>
     </div>
@@ -46,6 +87,12 @@
       <div class="modal-card death-card">
         <div class="modal-icon">☠️</div>
         <div class="modal-title">Você Morreu!</div>
+        <div id="death-killer-row" style="display: none">
+          <img id="death-killer-face" alt="" />
+          <span id="death-killer-label"
+            >por <strong id="death-killer-name"></strong
+          ></span>
+        </div>
         <p class="modal-sub">Renascendo em breve...</p>
       </div>
     </div>

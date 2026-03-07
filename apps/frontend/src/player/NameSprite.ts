@@ -44,7 +44,7 @@ export function syncNameSprite(
     group.remove(old);
   }
   const sprite = createNameSprite(name);
-  sprite.position.set(0, 1.7, 0);
+  sprite.position.set(0, 1, 0);
   group.add(sprite);
   playerCurrentNames[id] = name;
 }

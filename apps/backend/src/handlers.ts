@@ -31,7 +31,10 @@ export function getPlayers(): Record<string, PlayerState> {
 }
 
 function sanitizePlayerName(name: string | undefined): string {
-  return (name || DEFAULT_PLAYER_NAME).trim().slice(0, PLAYER_NAME_MAX_LEN) || DEFAULT_PLAYER_NAME;
+  return (
+    (name || DEFAULT_PLAYER_NAME).trim().slice(0, PLAYER_NAME_MAX_LEN) ||
+    DEFAULT_PLAYER_NAME
+  );
 }
 
 function clampMapCoord(v: number): number {
@@ -159,6 +162,24 @@ export function registerHandlers(io: Server, socket: Socket) {
     }
   });
 
+  socket.on("set_face", (data: { face: string }) => {
+    if (!players[socket.id]) return;
+    const face = String(data.face ?? "").trim();
+    // Must be a small base64 image data-URL; reject oversized payloads
+    if (!face.startsWith("data:image/") || face.length > 30_000) return;
+    players[socket.id].face = face;
+    socket.broadcast.emit("player_face_set", { id: socket.id, face });
+  });
+
+  socket.on("set_color", (data: { color: string }) => {
+    if (!players[socket.id]) return;
+    const color = String(data.color ?? "").trim();
+    // Must be a valid 6-digit CSS hex colour like "#a3c2f0"
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) return;
+    players[socket.id].color = color;
+    socket.broadcast.emit("player_color_set", { id: socket.id, color });
+  });
+
   socket.on("update_state", (data: { position: Vec3; rotation: Vec3 }) => {
     if (players[socket.id] && !players[socket.id].isDead) {
       const pos = { ...data.position };
@@ -258,12 +279,21 @@ export function registerHandlers(io: Server, socket: Socket) {
 
         const attacker = players[socket.id];
         const from = attacker
-          ? { x: attacker.position.x, y: attacker.position.y, z: attacker.position.z }
+          ? {
+              x: attacker.position.x,
+              y: attacker.position.y,
+              z: attacker.position.z,
+            }
           : undefined;
         if (target.hp <= 0) {
           killPlayer(io, target.id, socket.id, "bullet");
         } else {
-          io.emit("player_hit", { id: target.id, hp: target.hp, damage: dmg, from });
+          io.emit("player_hit", {
+            id: target.id,
+            hp: target.hp,
+            damage: dmg,
+            from,
+          });
         }
       }
     },

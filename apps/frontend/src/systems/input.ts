@@ -121,7 +121,7 @@ const SUPPRESS_KEYS = new Set([
   "F2",
   "F3",
   "F4",
-  "F5",
+  // "F5" intentionally excluded — allow native browser reload
   "F6",
   "F7",
   "F8",

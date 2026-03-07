@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { scene } from "../scene/setup";
 import { syncNameSprite } from "./NameSprite";
+import { getFaceTexture, disposeFaceTexture } from "../utils/faceTexture";
 
 // ─── Weapon transform configs (tweak these to adjust models) ─────────────────
 // Each has: scale [x,y,z], rotation [x,y,z] (radians), position [x,y,z]
@@ -9,14 +10,8 @@ import { syncNameSprite } from "./NameSprite";
 export const FAL_FP = {
   scale: [2, 2, 2] as [number, number, number],
   rotation: [0, Math.PI, 0] as [number, number, number],
-  position: [0.3, -0.75, -0.5] as [number, number, number], // group position in camera space
+  position: [0.3, -0.75, -0.5] as [number, number, number],
   fpOffset: [0, 0, 0] as [number, number, number], // extra shift for the weapon model only
-};
-
-export const FAL_3P = {
-  scale: [2, 2, 2] as [number, number, number],
-  rotation: [0, Math.PI, 0] as [number, number, number],
-  position: [0.08, -0.2, -0.42] as [number, number, number], // position on other-player model
 };
 
 export const AWP_FP = {
@@ -24,6 +19,12 @@ export const AWP_FP = {
   rotation: [0, 1.5, 0] as [number, number, number],
   position: [0.65, -0.35, -0.5] as [number, number, number],
   fpOffset: [0, 0, -0.6] as [number, number, number], // extra shift for the weapon model only
+};
+
+export const FAL_3P = {
+  scale: [2, 2, 2] as [number, number, number],
+  rotation: [0, Math.PI, 0] as [number, number, number],
+  position: [0.08, -0.2, -0.42] as [number, number, number],
 };
 
 export const AWP_3P = {
@@ -115,12 +116,42 @@ export function createLocalCorpse(
   head.castShadow = true;
   headGrp.add(head);
   const face = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.1), darkMat);
+  face.name = "faceVisor";
   face.position.set(0, 0.0, -0.2);
   headGrp.add(face);
+  const corpseFacePlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.4, 0.4),
+    new THREE.MeshStandardMaterial({ roughness: 0.55 }),
+  );
+  corpseFacePlane.name = "facePlane";
+  corpseFacePlane.rotation.y = Math.PI;
+  corpseFacePlane.position.set(0, 0, -0.21);
+  corpseFacePlane.visible = false;
+  headGrp.add(corpseFacePlane);
   grp.add(headGrp);
 
-  const leftArm = makeLimb("leftArm", 0.18, 0.55, 0.18, mat, -0.27, 0.20, 0, -0.27);
-  const rightArm = makeLimb("rightArm", 0.18, 0.55, 0.18, mat, 0.27, 0.20, 0, -0.27);
+  const leftArm = makeLimb(
+    "leftArm",
+    0.18,
+    0.55,
+    0.18,
+    mat,
+    -0.27,
+    0.2,
+    0,
+    -0.27,
+  );
+  const rightArm = makeLimb(
+    "rightArm",
+    0.18,
+    0.55,
+    0.18,
+    mat,
+    0.27,
+    0.2,
+    0,
+    -0.27,
+  );
   leftArm.rotation.x = ARM_HOLD_LEFT;
   leftArm.rotation.z = 0.15;
   rightArm.rotation.x = ARM_HOLD_RIGHT;
@@ -136,6 +167,10 @@ export function createLocalCorpse(
 
   otherPlayers[LOCAL_CORPSE_ID] = grp;
   localCorpseGroup = grp;
+
+  // Apply local player face texture to corpse if available
+  const localTex = getFaceTexture("__local__");
+  if (localTex) applyFaceTextureToGroup(grp, localTex);
 
   triggerRagdoll(LOCAL_CORPSE_ID, cause, explosionPos);
 }
@@ -297,8 +332,19 @@ export function addOtherPlayer(player: {
   head.castShadow = true;
   headGrp.add(head);
   const face = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.1), darkMat);
+  face.name = "faceVisor";
   face.position.set(0, 0.0, -0.2);
   headGrp.add(face);
+  // Photo face plane — hidden until a face texture is received
+  const facePlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.4, 0.4),
+    new THREE.MeshStandardMaterial({ roughness: 0.55 }),
+  );
+  facePlane.name = "facePlane";
+  facePlane.rotation.y = Math.PI;
+  facePlane.position.set(0, 0, -0.21);
+  facePlane.visible = false;
+  headGrp.add(facePlane);
   grp.add(headGrp);
 
   // ── Arms (shoulder pivots, posed in combat hold facing -Z) ─────────────
@@ -309,7 +355,7 @@ export function addOtherPlayer(player: {
     0.18,
     mat,
     -0.27,
-    0.20,
+    0.2,
     0,
     -0.27,
   );
@@ -320,13 +366,13 @@ export function addOtherPlayer(player: {
     0.18,
     mat,
     0.27,
-    0.20,
+    0.2,
     0,
     -0.27,
   );
   // Arms angled forward-down to align hands with weapon grip
   leftArm.rotation.x = ARM_HOLD_LEFT;
-  leftArm.rotation.z = 0.15;  // lean inward toward weapon center
+  leftArm.rotation.z = 0.15; // lean inward toward weapon center
   rightArm.rotation.x = ARM_HOLD_RIGHT;
   rightArm.rotation.z = -0.15; // lean inward toward weapon center
   grp.add(leftArm);
@@ -348,7 +394,42 @@ export function addOtherPlayer(player: {
   scene.add(grp);
   otherPlayers[player.id] = grp;
 
+  // Apply face texture if we already received it before the model was created
+  const existingTex = getFaceTexture(player.id);
+  if (existingTex) applyFaceTextureToGroup(grp, existingTex);
+
   syncNameSprite(grp, player.id, player.name, player.color);
+}
+
+/** Apply a face texture to a player group (works for remote players and corpses). */
+export function applyFaceTexture(id: string, texture: THREE.Texture): void {
+  const grp = otherPlayers[id];
+  if (!grp) return;
+  applyFaceTextureToGroup(grp, texture);
+}
+
+/** Change the body colour of a remote player's model live. */
+export function applyPlayerColor(id: string, hex: string): void {
+  const mat = playerOriginalMaterial[id];
+  if (!mat) return;
+  mat.color.set(hex);
+}
+
+function applyFaceTextureToGroup(
+  grp: THREE.Group,
+  texture: THREE.Texture,
+): void {
+  const headGrp = grp.getObjectByName("headGroup");
+  if (!headGrp) return;
+  const fp = headGrp.getObjectByName("facePlane") as THREE.Mesh | null;
+  const fv = headGrp.getObjectByName("faceVisor") as THREE.Mesh | null;
+  if (fp) {
+    const mat = fp.material as THREE.MeshStandardMaterial;
+    mat.map = texture;
+    mat.needsUpdate = true;
+    fp.visible = true;
+  }
+  if (fv) fv.visible = false;
 }
 
 /** Swap an other player's 3P weapon model (called on weapon_switch event). */
@@ -456,11 +537,12 @@ export function removeOtherPlayer(id: string) {
   }
   delete playerOriginalMaterial[id];
   delete playerCurrentNames[id];
+  disposeFaceTexture(id);
 }
 
 // ─── Third-person walk animation ─────────────────────────────────────────────
 
-const ARM_HOLD_LEFT = 1.00;  // ~57° forward — left arm supports barrel
+const ARM_HOLD_LEFT = 1.0; // ~57° forward — left arm supports barrel
 const ARM_HOLD_RIGHT = 0.81; // ~46° forward-down — right hand grips trigger
 const ARM_SWING = 0.22; // arm swing amplitude (radians)
 const LEG_SWING = 0.7; // leg swing amplitude (radians)
@@ -593,9 +675,9 @@ interface FlingAnim {
 }
 
 const activeFlings: Map<string, FlingAnim> = new Map();
-const FLING_DURATION = 1.4;      // seconds until we start recovering
-const FLING_RECOVER = 0.35;     // lerp-back duration
-const FLING_FRICTION = 1.8;      // must match KNOCKBACK_FRICTION in physics.ts
+const FLING_DURATION = 1.4; // seconds until we start recovering
+const FLING_RECOVER = 0.35; // lerp-back duration
+const FLING_FRICTION = 1.8; // must match KNOCKBACK_FRICTION in physics.ts
 
 export function isFlinging(id: string): boolean {
   return activeFlings.has(id);
@@ -681,15 +763,27 @@ export function updateFlings(delta: number): void {
         l.group.rotation.z += l.angVelZ * delta;
         l.angVelX *= drag;
         l.angVelZ *= drag;
-        l.group.rotation.x = THREE.MathUtils.clamp(l.group.rotation.x, -Math.PI * 0.5, Math.PI * 0.5);
-        l.group.rotation.z = THREE.MathUtils.clamp(l.group.rotation.z, -Math.PI * 0.3, Math.PI * 0.3);
+        l.group.rotation.x = THREE.MathUtils.clamp(
+          l.group.rotation.x,
+          -Math.PI * 0.5,
+          Math.PI * 0.5,
+        );
+        l.group.rotation.z = THREE.MathUtils.clamp(
+          l.group.rotation.z,
+          -Math.PI * 0.3,
+          Math.PI * 0.3,
+        );
       }
     } else {
       // Recovery phase — stand upright at the landing spot (no position reset)
       const rT = Math.min((f.elapsed - FLING_DURATION) / FLING_RECOVER, 1);
       f.group.rotation.x = THREE.MathUtils.lerp(f.group.rotation.x, 0, rT);
       f.group.rotation.z = THREE.MathUtils.lerp(f.group.rotation.z, 0, rT);
-      f.group.position.y = THREE.MathUtils.lerp(f.group.position.y, GROUND_Y, rT);
+      f.group.position.y = THREE.MathUtils.lerp(
+        f.group.position.y,
+        GROUND_Y,
+        rT,
+      );
 
       for (const l of f.limbs) {
         l.group.rotation.x = THREE.MathUtils.lerp(l.group.rotation.x, 0, rT);

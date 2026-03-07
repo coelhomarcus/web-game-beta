@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { PLAYER_HEIGHT } from "./config";
 import { scene, camera, renderer } from "./scene/setup";
 import { socket } from "./network/socket";
@@ -7,8 +8,17 @@ import { updateBullets, updateAmmo } from "./systems/shooting";
 import { updateGrenade } from "./systems/grenade";
 import { updateMinimap } from "./ui/minimap";
 import { getMyId } from "./network/events";
-import { updateRagdolls } from "./player/PlayerModel";
+import {
+  updateRagdolls,
+  updateFlings,
+  updateFloatingDamageNumbers,
+  updatePlayerAnimations,
+} from "./player/PlayerModel";
+import { updateAbilityItems } from "./systems/abilities";
+import { removeBobOffset, applyBobOffset } from "./systems/headBob";
+import { updateStats } from "./ui/stats";
 
+const _fwd = new THREE.Vector3();
 let prevTime = performance.now();
 
 export function animate() {
@@ -20,23 +30,38 @@ export function animate() {
   const isDead = getIsDead();
   const myId = getMyId();
 
-  if (getGameStarted() && !isDead) {
+  const active = getGameStarted() && !isDead;
+
+  removeBobOffset(); // strip last frame's bob so physics sees real player Y
+
+  if (active) {
     updatePhysics(controls, delta);
 
     if (myId) {
       const bodyY = camera.position.y - PLAYER_HEIGHT + 1;
+      // Derive yaw/pitch from forward vector to avoid Euler decomposition flips
+      const fwd = _fwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
+      const yaw = Math.atan2(-fwd.x, -fwd.z);
+      const pitch = Math.asin(Math.max(-1, Math.min(1, fwd.y)));
       socket.emit("update_state", {
         position: { x: camera.position.x, y: bodyY, z: camera.position.z },
-        rotation: { x: camera.rotation.x, y: camera.rotation.y, z: 0 },
+        rotation: { x: pitch, y: yaw, z: 0 },
       });
     }
   }
+
+  applyBobOffset(delta, active); // re-apply bob after physics & emit
 
   updateBullets(delta);
   updateAmmo(delta);
   updateGrenade(delta);
   updateRagdolls(delta);
+  updateFlings(delta);
+  updateAbilityItems(delta);
+  updatePlayerAnimations(delta);
+  updateFloatingDamageNumbers(delta);
 
   updateMinimap();
+  updateStats(delta);
   renderer.render(scene, camera);
 }

@@ -1,4 +1,6 @@
-export const SOCKET_URL = import.meta.env.DEV ? "http://localhost:3005" : window.location.origin;
+export const SOCKET_URL = import.meta.env.DEV
+  ? "http://localhost:3005"
+  : window.location.origin;
 
 export const PLAYER_HEIGHT = 1.6;
 export const PLAYER_RADIUS = 0.4;
@@ -7,7 +9,7 @@ export const JUMP_FORCE = 8;
 export const ACCELERATION = 100;
 export const FRICTION = 12;
 
-export const BULLET_SPEED = 60.0;
+export const BULLET_SPEED = 500.0;
 export const BULLET_MAX_LIFETIME = 2.0;
 export const BULLET_RADIUS = 0.06;
 

@@ -6,6 +6,7 @@ import {
   otherPlayers,
   playerOriginalMaterial,
   playerCurrentNames,
+  networkTargets,
 } from "./playerState";
 import { FAL_3P, AWP_3P } from "./weaponConfig";
 import { makeWeapon, makeAwpModel } from "./weaponModels";
@@ -161,6 +162,7 @@ export function removeOtherPlayer(id: string): void {
   stopInvincibleBlink(id);
   cleanupRagdoll(id);
   walkState.delete(id);
+  networkTargets.delete(id);
   if (otherPlayers[id]) {
     scene.remove(otherPlayers[id]);
     delete otherPlayers[id];

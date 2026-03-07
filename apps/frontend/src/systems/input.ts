@@ -1,5 +1,4 @@
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
-import * as THREE from "three";
 import { camera } from "../scene/setup";
 import { addMouseDelta } from "./cameraLook";
 import {
@@ -9,6 +8,7 @@ import {
   setMoveRight,
   setWantsJump,
   canJump,
+  startSlide,
 } from "./physics";
 import {
   handleShoot,
@@ -124,7 +124,30 @@ const SUPPRESS_KEYS = new Set([
   "F12",
 ]);
 
+// Ctrl / Alt combos that conflict with gameplay keys — block while pointer is locked
+const CTRL_BLOCK = new Set([
+  "KeyW", // close tab
+  "KeyR", // reload page
+  "KeyT", // new tab
+  "KeyN", // new window
+  "KeyS", // save page
+  "KeyD", // bookmark
+  "KeyG", // find next
+  "KeyH", // history
+  "KeyJ", // downloads
+  "KeyL", // address bar
+  "KeyU", // view source
+  "KeyP", // print
+  "KeyO", // open file
+  "KeyQ", // quit browser (some browsers)
+]);
+
 window.addEventListener("keydown", (e) => {
+  // Block dangerous browser shortcuts while playing
+  if ((e.ctrlKey || e.metaKey) && CTRL_BLOCK.has(e.code) && controls.isLocked) {
+    e.preventDefault();
+    return;
+  }
   if (SUPPRESS_KEYS.has(e.code)) {
     e.preventDefault();
     return;
@@ -150,6 +173,10 @@ window.addEventListener("keydown", (e) => {
       break;
     case "Space":
       if (canJump()) setWantsJump(true);
+      break;
+    case "ShiftLeft":
+    case "ShiftRight":
+      if (!e.repeat) startSlide();
       break;
     case "KeyQ":
       throwGrenade(controls, isDead);
@@ -233,6 +260,13 @@ window.addEventListener("mouseup", (e) => {
 
 // Prevent context menu on right-click
 window.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// Warn before closing/refreshing tab while in-game
+window.addEventListener("beforeunload", (e) => {
+  if (gameStarted && !isDead) {
+    e.preventDefault();
+  }
+});
 
 export function lockAndStart() {
   gameStarted = true;

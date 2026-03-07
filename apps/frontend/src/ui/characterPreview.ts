@@ -28,8 +28,8 @@ export function initCharacterPreview(container: HTMLElement): void {
   // No background — canvas is transparent
 
   const cam = new THREE.PerspectiveCamera(38, W / H, 0.1, 50);
-  cam.position.set(0, 0.2, 3.2);
-  cam.lookAt(0, 0.1, 0);
+  cam.position.set(0, 0.1, 3.2);
+  cam.lookAt(0, 0, 0);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0);

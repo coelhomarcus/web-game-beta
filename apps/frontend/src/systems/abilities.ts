@@ -246,13 +246,12 @@ const FEED_ID = "ability-feed";
 let _slotEl: HTMLElement | null = null;
 let _iconEl: HTMLElement | null = null;
 let _feedEl: HTMLElement | null = null;
-let _keyEl: HTMLElement | null = null;
 
 function buildAbilityHudSlot(): void {
   if (document.getElementById(SLOT_ID)) {
     _slotEl = document.getElementById(SLOT_ID);
     _iconEl = document.getElementById("hud-ability-icon");
-    _keyEl = document.querySelector("#" + SLOT_ID + " .hud-ability-key");
+    document.querySelector("#" + SLOT_ID + " .hud-ability-key");
     _feedEl = document.getElementById(FEED_ID);
     return;
   }
@@ -274,7 +273,7 @@ function buildAbilityHudSlot(): void {
 
   _slotEl = slot;
   _iconEl = slot.querySelector("#hud-ability-icon");
-  _keyEl = slot.querySelector(".hud-ability-key");
+  slot.querySelector(".hud-ability-key");
   _feedEl = feed;
 }
 

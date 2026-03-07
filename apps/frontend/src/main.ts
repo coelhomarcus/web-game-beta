@@ -168,6 +168,10 @@ const _initColor = localStorage.getItem("fps_arena_color") ?? "#4a90e2";
 if (colorPickerInput) colorPickerInput.value = _initColor;
 if (colorPickerLabel) colorPickerLabel.textContent = _initColor;
 
+// Restore saved player name from localStorage
+const _savedName = localStorage.getItem("fps_arena_name");
+if (_savedName && nameInput) nameInput.value = _savedName;
+
 // Color picker → live preview + store
 colorPickerInput?.addEventListener("input", () => {
   applyPlayerColorLocally(colorPickerInput.value);
@@ -235,6 +239,7 @@ faceRemoveBtn?.addEventListener("click", () => {
 function startGame() {
   const name = sanitizePlayerName(nameInput.value);
   setPlayerName(name);
+  localStorage.setItem("fps_arena_name", name);
   const myId = getMyId();
   if (myId) {
     socket.emit("set_name", { name });

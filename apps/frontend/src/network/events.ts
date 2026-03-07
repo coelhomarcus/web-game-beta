@@ -21,10 +21,12 @@ import {
   applyFaceTexture,
   applyPlayerColor,
 } from "../player/PlayerModel";
+import { slidingPlayers } from "../player/walkAnimation";
+import { networkTargets } from "../player/playerState";
 import { storeFaceDataUrl, getFaceDataUrl } from "../utils/faceTexture";
 import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
-import { velocity, applyKnockback } from "../systems/physics";
+import { velocity, applyKnockback, cancelSlide } from "../systems/physics";
 import { createVisualBullet } from "../systems/shooting";
 import {
   explodeGrenade,
@@ -160,8 +162,14 @@ export function setupSocketEvents() {
       }
       mesh.visible = !p.isDead;
       if (!p.isDead) {
-        _tmpNetPos.set(p.position.x, p.position.y, p.position.z);
-        mesh.position.lerp(_tmpNetPos, 0.3);
+        // Store target position for per-frame interpolation (done in walkAnimation)
+        let target = networkTargets.get(id);
+        if (!target) {
+          target = new THREE.Vector3(p.position.x, p.position.y, p.position.z);
+          networkTargets.set(id, target);
+        } else {
+          target.set(p.position.x, p.position.y, p.position.z);
+        }
         mesh.rotation.y = p.rotation.y;
         const hg = mesh.getObjectByName("headGroup");
         if (hg)
@@ -170,6 +178,9 @@ export function setupSocketEvents() {
             -Math.PI / 3,
             Math.PI / 3,
           );
+        // Track slide state for 3P animation
+        if (p.isSliding) slidingPlayers.add(id);
+        else slidingPlayers.delete(id);
         syncNameSprite(mesh, id, p.name, p.color);
       }
       if (allStats[id]) allStats[id].name = p.name;
@@ -198,7 +209,7 @@ export function setupSocketEvents() {
             camera.quaternion,
           );
           const dotFwd = dx * fwd.x + dz * fwd.z; // positive = attacker in front
-          const dotRight = dx * fwd.z - dz * fwd.x; // positive = attacker to right
+          const dotRight = dz * fwd.x - dx * fwd.z; // positive = attacker to right
           // atan2(right, fwd): 0 = front (top), 90 = right, 180 = back (bottom)
           const deg = THREE.MathUtils.radToDeg(Math.atan2(dotRight, dotFwd));
           showDamageDirection(deg);
@@ -284,6 +295,7 @@ export function setupSocketEvents() {
       setIsDead(false);
       camera.position.set(p.position.x, PLAYER_HEIGHT, p.position.z);
       velocity.set(0, 0, 0);
+      cancelSlide();
       updateHudHp(100);
       deathScreen.style.display = "none";
       // Hide killer row for next death

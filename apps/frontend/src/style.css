@@ -972,16 +972,18 @@ body.awp #crosshair {
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
-  height: 18px;
-  margin-left: -2px;
-  margin-top: -58px;
-  background: rgba(255, 20, 20, 0.85);
-  border-radius: 2px;
-  transform-origin: 2px 58px;
+  width: 80px;
+  height: 80px;
+  margin-left: -40px;
+  margin-top: -40px;
+  border-radius: 50%;
+  border: 3.5px solid transparent;
+  border-top-color: rgba(255, 20, 20, 0.9);
+  transform-origin: center center;
   opacity: 0;
   transition: opacity 0.08s;
-  filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.6));
+  filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.5));
+  box-sizing: border-box;
 }
 
 .dmg-arrow.active {

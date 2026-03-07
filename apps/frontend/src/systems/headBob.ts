@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { camera } from "../scene/setup";
-import { velocity, isOnGround } from "./physics";
+import { velocity, isOnGround, isSliding } from "./physics";
 
 // Tuning constants
 const BOB_SPEED = 8; // oscillations per second while walking
@@ -12,6 +12,13 @@ let bobTimer = 0;
 let bobY = 0;
 let bobRoll = 0;
 
+// ─── Slide camera tilt ─────────────────────────────────────────────────────────
+const SLIDE_TILT = 0.12; // radians (~7° roll)
+const SLIDE_FOV_BOOST = 6; // degrees added to FOV during slide
+let _slideTilt = 0;
+let _slideFovOffset = 0;
+let _prevSlideFovApplied = 0;
+
 // ─── Screen shake state ───────────────────────────────────────────────────────
 let shakeIntensity = 0;
 let shakeOffsetX = 0;
@@ -19,11 +26,11 @@ let shakeOffsetY = 0;
 const SHAKE_DECAY = 12; // how fast the shake fades out
 
 // ─── Weapon recoil state ──────────────────────────────────────────────────────
-let recoilKickZ = 0;       // current backward offset
-let recoilKickRot = 0;     // current upward rotation (pitch)
-let recoilTarget = 0;      // target kick magnitude
-const RECOIL_SNAP = 35;    // how fast the gun kicks back
-const RECOIL_RECOVER = 8;  // how fast the gun returns to rest
+let recoilKickZ = 0; // current backward offset
+let recoilKickRot = 0; // current upward rotation (pitch)
+let recoilTarget = 0; // target kick magnitude
+const RECOIL_SNAP = 35; // how fast the gun kicks back
+const RECOIL_RECOVER = 8; // how fast the gun returns to rest
 
 // Reference to the first-person weapon so it can be swayed independently
 let fpWeaponRef: THREE.Group | null = null;
@@ -76,11 +83,12 @@ export function removeBobOffset(): void {
  * @param active Whether the player is alive and in-game (bob only when true).
  */
 export function applyBobOffset(delta: number, active: boolean): void {
-  const hSpeed = active
-    ? Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
-    : 0;
+  const hSpeed =
+    active && !isSliding
+      ? Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+      : 0;
 
-  const isMoving = hSpeed > 0.5 && isOnGround;
+  const isMoving = hSpeed > 0.5 && isOnGround && !isSliding;
 
   if (isMoving) bobTimer += delta * BOB_SPEED;
 
@@ -110,16 +118,42 @@ export function applyBobOffset(delta: number, active: boolean): void {
   // ─── Weapon recoil animation ────────────────────────────────────────────
   if (recoilTarget > 0) {
     // Snap toward the kick target
-    recoilKickZ += (recoilTarget - recoilKickZ) * Math.min(1, delta * RECOIL_SNAP);
-    recoilKickRot += (recoilTarget * 0.6 - recoilKickRot) * Math.min(1, delta * RECOIL_SNAP);
+    recoilKickZ +=
+      (recoilTarget - recoilKickZ) * Math.min(1, delta * RECOIL_SNAP);
+    recoilKickRot +=
+      (recoilTarget * 0.6 - recoilKickRot) * Math.min(1, delta * RECOIL_SNAP);
     // Once close enough, start recovery
     if (recoilKickZ >= recoilTarget * 0.9) recoilTarget = 0;
   } else {
     // Smoothly return to rest
     recoilKickZ *= Math.max(0, 1 - RECOIL_RECOVER * delta);
     recoilKickRot *= Math.max(0, 1 - RECOIL_RECOVER * delta);
-    if (Math.abs(recoilKickZ) < 0.0005) { recoilKickZ = 0; recoilKickRot = 0; }
+    if (Math.abs(recoilKickZ) < 0.0005) {
+      recoilKickZ = 0;
+      recoilKickRot = 0;
+    }
   }
+
+  // ─── Slide camera tilt & FOV ────────────────────────────────────────────
+  const tiltTarget = isSliding ? SLIDE_TILT : 0;
+  const fovTarget = isSliding ? SLIDE_FOV_BOOST : 0;
+  const tiltLerp = Math.min(1, delta * 10);
+  _slideTilt += (tiltTarget - _slideTilt) * tiltLerp;
+  _slideFovOffset += (fovTarget - _slideFovOffset) * tiltLerp;
+  if (Math.abs(_slideFovOffset) < 0.05 && !isSliding) _slideFovOffset = 0;
+  if (Math.abs(_slideTilt) > 0.001) {
+    // Apply roll tilt via the camera's local Z euler component
+    const e = new THREE.Euler().setFromQuaternion(camera.quaternion, "YXZ");
+    e.z = _slideTilt;
+    camera.quaternion.setFromEuler(e);
+  }
+  // Additive FOV: undo previous frame's offset, apply new one
+  const fovDelta = _slideFovOffset - _prevSlideFovApplied;
+  if (Math.abs(fovDelta) > 0.01) {
+    camera.fov += fovDelta;
+    camera.updateProjectionMatrix();
+  }
+  _prevSlideFovApplied = _slideFovOffset;
 
   // Apply independent weapon sway so the gun feels alive
   if (fpWeaponRef) {

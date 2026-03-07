@@ -1,76 +1,64 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FPS Arena</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-  </head>
 
-  <body>
-    <!-- Start screen -->
-    <div id="start-screen">
-      <div class="start-card">
-        <div class="start-title">FPS ARENA</div>
-        <div class="start-sub">Multiplayer · Tempo Real</div>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FPS Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+  <!-- Start screen -->
+  <div id="start-screen">
+    <div class="start-card">
+      <div class="kirby-body">
         <div class="start-form">
-          <label for="name-input">Nome do Jogador</label>
-          <input
-            id="name-input"
-            type="text"
-            placeholder="Digite seu nome..."
-            maxlength="16"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button id="play-btn">ENTRAR</button>
-        </div>
-        <div class="start-controls">
-          <span>WASD · Mover</span>
-          <span>Space · Pular</span>
-          <span>LMB · Atirar</span>
-          <span>TAB · Placar</span>
-          <span>ESC · Pausar</span>
-          <span>Enter · Chat</span>
+          <div class="kirby-row">
+            <input id="name-input" type="text" placeholder="Digite seu nome..." maxlength="16" autocomplete="off"
+              spellcheck="false" />
+          </div>
+          <button id="play-btn">▶ ENTRAR</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Death screen -->
-    <div id="death-screen">
-      <div class="modal-card death-card">
-        <div class="modal-icon">☠️</div>
-        <div class="modal-title">Você Morreu!</div>
-        <p class="modal-sub">Renascendo em breve...</p>
-      </div>
+  <!-- Death screen -->
+  <div id="death-screen">
+    <div class="modal-card death-card">
+      <div class="modal-icon">☠️</div>
+      <div class="modal-title">Você Morreu!</div>
+      <p class="modal-sub">Renascendo em breve...</p>
     </div>
+  </div>
 
-    <!-- TAB scoreboard -->
-    <div id="scoreboard">
-      <div id="scoreboard-header">
-        <span id="scoreboard-title">PLACAR</span>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Jogador</th>
-            <th>Kills</th>
-            <th>Assists</th>
-            <th>Deaths</th>
-            <th>K/D</th>
-          </tr>
-        </thead>
-        <tbody id="scoreboard-body"></tbody>
-      </table>
+  <!-- TAB scoreboard -->
+  <div id="scoreboard">
+    <div id="scoreboard-header">
+      <span id="scoreboard-title">PLACAR</span>
     </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Jogador</th>
+          <th>Kills</th>
+          <th>Assists</th>
+          <th>Deaths</th>
+          <th>K/D</th>
+        </tr>
+      </thead>
+      <tbody id="scoreboard-body"></tbody>
+    </table>
+  </div>
 
-    <div id="crosshair"></div>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+  <div id="crosshair"></div>
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>

@@ -6,13 +6,14 @@ import { syncNameSprite } from "./NameSprite";
 // ─── Weapon transform configs (tweak these to adjust models) ─────────────────
 // Each has: scale [x,y,z], rotation [x,y,z] (radians), position [x,y,z]
 
-export const M4A1_FP = {
+export const FAL_FP = {
   scale: [2, 2, 2] as [number, number, number],
   rotation: [0, Math.PI, 0] as [number, number, number],
   position: [0.3, -0.75, -0.5] as [number, number, number], // group position in camera space
+  fpOffset: [0, 0, 0] as [number, number, number], // extra shift for the weapon model only
 };
 
-export const M4A1_3P = {
+export const FAL_3P = {
   scale: [2, 2, 2] as [number, number, number],
   rotation: [0, Math.PI, 0] as [number, number, number],
   position: [0.08, -0.2, -0.42] as [number, number, number], // position on other-player model
@@ -21,7 +22,8 @@ export const M4A1_3P = {
 export const AWP_FP = {
   scale: [0.1, 0.1, 0.1] as [number, number, number],
   rotation: [0, 1.5, 0] as [number, number, number],
-  position: [0.3, -0.32, -0.5] as [number, number, number],
+  position: [0.65, -0.35, -0.5] as [number, number, number],
+  fpOffset: [0, 0, -0.6] as [number, number, number], // extra shift for the weapon model only
 };
 
 export const AWP_3P = {
@@ -30,12 +32,12 @@ export const AWP_3P = {
   position: [0.08, 0.1, -0.42] as [number, number, number],
 };
 
-// ─── Pre-loaded M4A1 GLB model ───────────────────────────────────────────────
-let m4a1Template: THREE.Group | null = null;
-const m4a1Loader = new GLTFLoader();
-m4a1Loader.load("/models/M4A1/PSX_Old_FN_FAL.glb", (gltf) => {
-  m4a1Template = gltf.scene;
-  m4a1Template.traverse((child) => {
+// ─── Pre-loaded FAL GLB model ────────────────────────────────────────────────
+let falTemplate: THREE.Group | null = null;
+const falLoader = new GLTFLoader();
+falLoader.load("/models/M4A1/PSX_Old_FN_FAL.glb", (gltf) => {
+  falTemplate = gltf.scene;
+  falTemplate.traverse((child) => {
     if ((child as THREE.Mesh).isMesh) {
       child.castShadow = true;
       child.receiveShadow = true;
@@ -47,7 +49,7 @@ m4a1Loader.load("/models/M4A1/PSX_Old_FN_FAL.glb", (gltf) => {
 
 // ─── Pre-loaded AWP/Sniper GLB model ─────────────────────────────────────────
 let awpTemplate: THREE.Group | null = null;
-m4a1Loader.load("/models/SNIPER/low-poly_m24_sniper_rifle.glb", (gltf) => {
+falLoader.load("/models/SNIPER/low-poly_m24_sniper_rifle.glb", (gltf) => {
   awpTemplate = gltf.scene;
   awpTemplate.traverse((child) => {
     if ((child as THREE.Mesh).isMesh) {
@@ -69,7 +71,7 @@ function refreshAll3PWeapons() {
     const weaponId = (old.userData.weaponId as "ar" | "awp") || "ar";
     grp.remove(old);
     const wep = weaponId === "awp" ? makeAwpModel(false) : makeWeapon(false);
-    const cfg3p = weaponId === "awp" ? AWP_3P : M4A1_3P;
+    const cfg3p = weaponId === "awp" ? AWP_3P : FAL_3P;
     wep.name = "weapon3p";
     wep.userData.weaponId = weaponId;
     wep.position.set(...cfg3p.position);
@@ -160,7 +162,7 @@ export function makeFirstPersonArms(
 ): THREE.Group {
   const rig = new THREE.Group();
 
-  const fpCfg = variant === "awp" ? AWP_FP : M4A1_FP;
+  const fpCfg = variant === "awp" ? AWP_FP : FAL_FP;
   const [wx, wy, wz] = fpCfg.position;
 
   const skin = new THREE.MeshStandardMaterial({
@@ -191,11 +193,11 @@ export function makeFirstPersonArms(
     // Right arm: gripping the stock
     addArm("right", [0.04, 0.28, 0.22], [-0.62, 0.06, -0.05]);
     // Left arm: supporting the barrel
-    addArm("left",  [0.2,  0.31, -0.1], [-0.88, 0.18,  0.1]);
+    addArm("left", [0.2, 0.31, -0.1], [-0.88, 0.18, 0.1]);
   } else {
     // AWP — arms shifted to match scope hold
     addArm("right", [0.04, -0.1, 0.22], [-0.64, 0.06, -0.05]);
-    addArm("left",  [0.26, -0.06, -0.3], [-0.96, 0.24,  0.12]);
+    addArm("left", [0.26, -0.06, -0.3], [-0.96, 0.24, 0.12]);
   }
 
   return rig;
@@ -203,12 +205,15 @@ export function makeFirstPersonArms(
 
 export function makeWeapon(firstPerson: boolean): THREE.Group {
   const g = new THREE.Group();
-  const cfg = firstPerson ? M4A1_FP : M4A1_3P;
+  const cfg = firstPerson ? FAL_FP : FAL_3P;
 
-  if (m4a1Template) {
-    const model = m4a1Template.clone();
+  if (falTemplate) {
+    const model = falTemplate.clone();
     model.scale.set(...cfg.scale);
     model.rotation.set(...cfg.rotation);
+    if (firstPerson && FAL_FP.fpOffset) {
+      model.position.set(...FAL_FP.fpOffset);
+    }
     g.add(model);
   } else {
     // Fallback while GLB is still loading
@@ -228,7 +233,7 @@ export function makeWeapon(firstPerson: boolean): THREE.Group {
     g.add(body);
   }
 
-  if (firstPerson) g.position.set(...M4A1_FP.position);
+  if (firstPerson) g.position.set(...FAL_FP.position);
   return g;
 }
 
@@ -240,6 +245,9 @@ export function makeAwpModel(firstPerson: boolean): THREE.Group {
     const model = awpTemplate.clone();
     model.scale.set(...cfg.scale);
     model.rotation.set(...cfg.rotation);
+    if (firstPerson && AWP_FP.fpOffset) {
+      model.position.set(...AWP_FP.fpOffset);
+    }
     g.add(model);
   } else {
     // Fallback while GLB is still loading
@@ -328,7 +336,7 @@ export function addOtherPlayer(player: {
   const wep3p = makeWeapon(false);
   wep3p.name = "weapon3p";
   wep3p.userData.weaponId = "ar";
-  wep3p.position.set(...M4A1_3P.position);
+  wep3p.position.set(...FAL_3P.position);
   grp.add(wep3p);
 
   // ── Legs ───────────────────────────────────────────────────────────────
@@ -353,7 +361,7 @@ export function swapOtherPlayerWeapon(
   const old = grp.getObjectByName("weapon3p");
   if (old) grp.remove(old);
   const wep = weaponId === "awp" ? makeAwpModel(false) : makeWeapon(false);
-  const cfg3p = weaponId === "awp" ? AWP_3P : M4A1_3P;
+  const cfg3p = weaponId === "awp" ? AWP_3P : FAL_3P;
   wep.name = "weapon3p";
   wep.userData.weaponId = weaponId;
   wep.position.set(...cfg3p.position);
@@ -586,7 +594,7 @@ interface FlingAnim {
 
 const activeFlings: Map<string, FlingAnim> = new Map();
 const FLING_DURATION = 1.4;      // seconds until we start recovering
-const FLING_RECOVER  = 0.35;     // lerp-back duration
+const FLING_RECOVER = 0.35;     // lerp-back duration
 const FLING_FRICTION = 1.8;      // must match KNOCKBACK_FRICTION in physics.ts
 
 export function isFlinging(id: string): boolean {

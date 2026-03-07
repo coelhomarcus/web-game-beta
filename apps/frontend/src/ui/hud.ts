@@ -22,10 +22,10 @@ hud.innerHTML = `
   <div id="hud-right">
     <div id="hud-weapon">
       <div id="hud-weapon-keys">
-        <span class="wkey active" id="wkey-1">1 M4A1</span>
+        <span class="wkey active" id="wkey-1">1 FAL</span>
         <span class="wkey" id="wkey-2">2 AWP</span>
       </div>
-      <span id="hud-weapon-name">M4A1</span>
+      <span id="hud-weapon-name">FAL</span>
     </div>
     <div id="hud-ammo">
       <span id="hud-ammo-current">20</span><span id="hud-ammo-sep"> / </span><span id="hud-ammo-reserve">∞</span>

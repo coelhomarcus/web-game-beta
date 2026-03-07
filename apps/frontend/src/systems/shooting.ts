@@ -35,7 +35,7 @@ export interface WeaponDef {
 export const WEAPONS: Record<string, WeaponDef> = {
   ar: {
     id: "ar",
-    name: "M4A1",
+    name: "FAL",
     label: "1",
     magSize: 20,
     reloadTime: 2.0,

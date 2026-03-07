@@ -10,5 +10,6 @@ export const BLAST_RADIUS = 7;
 export const MAX_DAMAGE = 100;
 export const MIN_DAMAGE = 25;
 export const BULLET_DAMAGE = 25;
+export const AWP_DAMAGE = 60;
 export const RESPAWN_TIME = 3000;
 export const INVINCIBLE_TIME = 3000;

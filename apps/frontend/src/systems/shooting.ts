@@ -3,11 +3,19 @@ import { BULLET_SPEED, BULLET_MAX_LIFETIME, BULLET_RADIUS } from "../config";
 import { scene, camera, sceneFog } from "../scene/setup";
 import { mapBlocks } from "../scene/map";
 import { otherPlayers } from "../player/PlayerModel";
+import { isPlayerInvincible } from "../player/PlayerModel";
 import { socket } from "../network/socket";
 import { playShootSound, playAwpSound, playReloadSound } from "./audio";
 import { showHitMarker, stopLocalInvincibleBlink } from "../ui/overlays";
-import { updateHudAmmo, updateHudWeapon, startReloadRing, stopReloadRing } from "../ui/hud";
+import {
+  updateHudAmmo,
+  updateHudWeapon,
+  startReloadRing,
+  stopReloadRing,
+} from "../ui/hud";
 import { showScope, hideScope } from "../ui/overlays";
+import { controls } from "./input";
+import { getNormalSensitivity, getScopeSensitivity } from "../ui/settings";
 
 // ─── Weapon definitions ───────────────────────────────────────────────────────
 export interface WeaponDef {
@@ -16,8 +24,8 @@ export interface WeaponDef {
   label: string;
   magSize: number;
   reloadTime: number; // seconds
-  fireRate: number;   // min seconds between shots (0 = no limit)
-  damage: number;     // hp damage per hit (100 = one-shot kill)
+  fireRate: number; // min seconds between shots (0 = no limit)
+  damage: number; // hp damage per hit (100 = one-shot kill)
   bulletColor: number;
   bulletSpeed: number;
   bulletMaxLife: number;
@@ -43,9 +51,9 @@ export const WEAPONS: Record<string, WeaponDef> = {
     magSize: 5,
     reloadTime: 3.2,
     fireRate: 1.1, // bolt-action delay
-    damage: 100,   // one-hit kill
+    damage: 60,
     bulletColor: 0x00ffff,
-    bulletSpeed: 120,
+    bulletSpeed: 800,
     bulletMaxLife: 3.0,
   },
 };
@@ -62,10 +70,18 @@ let fireCooldown = 0;
 // Scope state (AWP only)
 let isScoped = false;
 
-export function getCurrentWeapon(): WeaponDef { return WEAPONS[currentWeaponId]; }
-export function getAmmo() { return ammo; }
-export function getIsReloading() { return isReloading; }
-export function getIsScoped() { return isScoped; }
+export function getCurrentWeapon(): WeaponDef {
+  return WEAPONS[currentWeaponId];
+}
+export function getAmmo() {
+  return ammo;
+}
+export function getIsReloading() {
+  return isReloading;
+}
+export function getIsScoped() {
+  return isScoped;
+}
 
 // ─── Switch weapon ────────────────────────────────────────────────────────────
 export function switchWeapon(id: "ar" | "awp") {
@@ -86,7 +102,11 @@ export function switchWeapon(id: "ar" | "awp") {
 // ─── Scope (AWP right-click toggle) ───────────────────────────────────────────
 export function toggleScope() {
   if (currentWeaponId !== "awp") return;
-  if (isScoped) { exitScope(); } else { enterScope(); }
+  if (isScoped) {
+    exitScope();
+  } else {
+    enterScope();
+  }
 }
 
 export function enterScope() {
@@ -96,10 +116,13 @@ export function enterScope() {
   document.body.classList.add("scoped");
   camera.fov = 20;
   camera.updateProjectionMatrix();
+  controls.pointerSpeed = getScopeSensitivity();
   // Push fog far so scoped view is clear
   sceneFog.near = 40;
   sceneFog.far = 200;
-  window.dispatchEvent(new CustomEvent("scope-changed", { detail: { scoped: true } }));
+  window.dispatchEvent(
+    new CustomEvent("scope-changed", { detail: { scoped: true } }),
+  );
 }
 
 export function exitScope() {
@@ -109,10 +132,13 @@ export function exitScope() {
   document.body.classList.remove("scoped");
   camera.fov = 75;
   camera.updateProjectionMatrix();
+  controls.pointerSpeed = getNormalSensitivity();
   // Restore normal fog
   sceneFog.near = 0;
   sceneFog.far = 60;
-  window.dispatchEvent(new CustomEvent("scope-changed", { detail: { scoped: false } }));
+  window.dispatchEvent(
+    new CustomEvent("scope-changed", { detail: { scoped: false } }),
+  );
 }
 
 // ─── Reload ───────────────────────────────────────────────────────────────────
@@ -153,7 +179,8 @@ const bulletGeo = new THREE.SphereGeometry(0.06, 6, 6);
 const matCache: Record<number, THREE.MeshBasicMaterial> = {};
 
 function getBulletMat(color: number): THREE.MeshBasicMaterial {
-  if (!matCache[color]) matCache[color] = new THREE.MeshBasicMaterial({ color });
+  if (!matCache[color])
+    matCache[color] = new THREE.MeshBasicMaterial({ color });
   return matCache[color];
 }
 
@@ -167,7 +194,13 @@ export function createVisualBullet(
   const mesh = new THREE.Mesh(bulletGeo, getBulletMat(color));
   mesh.position.copy(origin);
   scene.add(mesh);
-  activeBullets.push({ mesh, dir: dir.clone().normalize(), lifeTime: 0, speed, maxLife });
+  activeBullets.push({
+    mesh,
+    dir: dir.clone().normalize(),
+    lifeTime: 0,
+    speed,
+    maxLife,
+  });
 }
 
 const raycaster = new THREE.Raycaster();
@@ -176,11 +209,27 @@ raycaster.near = 0.1;
 function findPlayerGroup(o: THREE.Object3D): THREE.Group | null {
   let cur: THREE.Object3D | null = o;
   while (cur) {
-    if (cur instanceof THREE.Group && Object.values(otherPlayers).includes(cur as THREE.Group))
+    if (
+      cur instanceof THREE.Group &&
+      Object.values(otherPlayers).includes(cur as THREE.Group)
+    )
       return cur;
     cur = cur.parent;
   }
   return null;
+}
+
+/** Returns true if the hit mesh belongs to the headGroup hierarchy. */
+function isHeadHit(hitObject: THREE.Object3D): boolean {
+  let cur: THREE.Object3D | null = hitObject;
+  while (cur) {
+    if (cur.name === "headGroup") return true;
+    // Stop once we reach the player root group
+    if (cur instanceof THREE.Group && Object.values(otherPlayers).includes(cur))
+      break;
+    cur = cur.parent;
+  }
+  return false;
 }
 
 export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
@@ -215,14 +264,29 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
   const hits = raycaster.intersectObjects(allTargets, true);
   const firstPlayerHit = hits.find((h) => findPlayerGroup(h.object) !== null);
   if (firstPlayerHit) {
-    const wallHit = hits.find((h) => mapBlocks.includes(h.object as THREE.Mesh));
+    const wallHit = hits.find((h) =>
+      mapBlocks.includes(h.object as THREE.Mesh),
+    );
     const playerBlocked = wallHit && wallHit.distance < firstPlayerHit.distance;
     if (!playerBlocked) {
       const grp = findPlayerGroup(firstPlayerHit.object)!;
-      const tid = Object.keys(otherPlayers).find((id) => otherPlayers[id] === grp);
+      const tid = Object.keys(otherPlayers).find(
+        (id) => otherPlayers[id] === grp,
+      );
       if (tid) {
-        socket.emit("hit_player", { targetId: tid, damage: w.damage, weaponId: w.id });
-        showHitMarker();
+        if (isPlayerInvincible(tid)) {
+          // Don't show hitmarker or send damage for invincible players
+        } else {
+          const headshot = isHeadHit(firstPlayerHit.object);
+          const dmg = headshot ? w.damage * 2 : w.damage;
+          socket.emit("hit_player", {
+            targetId: tid,
+            damage: dmg,
+            weaponId: w.id,
+            headshot,
+          });
+          showHitMarker(headshot);
+        }
       }
     }
   }

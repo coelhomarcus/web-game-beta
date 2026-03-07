@@ -7,6 +7,16 @@ import {
   otherPlayers, addOtherPlayer, removeOtherPlayer, flashPlayerHit,
   startInvincibleBlink, triggerRagdoll, cleanupRagdoll, isRagdollActive,
   triggerShoutFling, isFlinging,
+  otherPlayers,
+  addOtherPlayer,
+  removeOtherPlayer,
+  flashPlayerHit,
+  startInvincibleBlink,
+  triggerRagdoll,
+  cleanupRagdoll,
+  isRagdollActive,
+  showDamageNumber,
+  swapOtherPlayerWeapon,
 } from "../player/PlayerModel";
 import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
@@ -14,17 +24,32 @@ import { velocity, applyKnockback } from "../systems/physics";
 import { createVisualBullet } from "../systems/shooting";
 import { explodeGrenade, spawnRemoteGrenade, cleanupRemoteGrenades } from "../systems/grenade";
 import { spawnShoutAura } from "../systems/abilities";
+import {
+  explodeGrenade,
+  spawnRemoteGrenade,
+  cleanupRemoteGrenades,
+} from "../systems/grenade";
 import { updateHudHp } from "../ui/hud";
 import { allStats, setMyIdRef } from "../ui/scoreboard";
-import { flashDamage, showKillFeedEntry, startLocalInvincibleBlink } from "../ui/overlays";
+import {
+  flashDamage,
+  showKillFeedEntry,
+  startLocalInvincibleBlink,
+} from "../ui/overlays";
 import { addMessage } from "../ui/chat";
 
 let myId = "";
 let playerName = "";
 
-export function getMyId() { return myId; }
-export function getPlayerName() { return playerName; }
-export function setPlayerName(name: string) { playerName = name; }
+export function getMyId() {
+  return myId;
+}
+export function getPlayerName() {
+  return playerName;
+}
+export function setPlayerName(name: string) {
+  playerName = name;
+}
 
 const deathScreen = document.getElementById("death-screen")!;
 
@@ -53,7 +78,13 @@ export function setupSocketEvents() {
         if (id !== myId) {
           const p = data.players[id];
           addOtherPlayer(p);
-          allStats[id] = { name: p.name, kills: 0, deaths: 0, assists: 0, color: p.color };
+          allStats[id] = {
+            name: p.name,
+            kills: 0,
+            deaths: 0,
+            assists: 0,
+            color: p.color,
+          };
         }
       }
     },
@@ -62,7 +93,13 @@ export function setupSocketEvents() {
   socket.on("player_joined", (p: PlayerState) => {
     if (p.id === myId) return;
     addOtherPlayer(p);
-    allStats[p.id] = { name: p.name, kills: 0, deaths: 0, assists: 0, color: p.color };
+    allStats[p.id] = {
+      name: p.name,
+      kills: 0,
+      deaths: 0,
+      assists: 0,
+      color: p.color,
+    };
   });
 
   socket.on("player_left", (id: string) => {
@@ -89,45 +126,70 @@ export function setupSocketEvents() {
         );
         mesh.rotation.y = p.rotation.y;
         const hg = mesh.getObjectByName("headGroup");
-        if (hg) hg.rotation.x = p.rotation.x;
+        if (hg)
+          hg.rotation.x = THREE.MathUtils.clamp(
+            p.rotation.x,
+            -Math.PI / 3,
+            Math.PI / 3,
+          );
         syncNameSprite(mesh, id, p.name, p.color);
       }
       if (allStats[id]) allStats[id].name = p.name;
     }
   });
 
-  socket.on("player_hit", (data: { id: string; hp: number }) => {
-    if (data.id === myId) {
-      updateHudHp(data.hp);
-      flashDamage();
-    } else flashPlayerHit(data.id);
-  });
+  socket.on(
+    "player_hit",
+    (data: { id: string; hp: number; damage?: number }) => {
+      if (data.id === myId) {
+        updateHudHp(data.hp);
+        flashDamage();
+      } else {
+        flashPlayerHit(data.id);
+        showDamageNumber(data.id, data.damage ?? 25);
+      }
+    },
+  );
 
-  socket.on("player_killed", (data: {
-    victim: string; killer: string; assist?: string;
-    weapon?: string;
-    cause?: string; explosionPos?: { x: number; y: number; z: number };
-  }) => {
-    if (allStats[data.killer]) allStats[data.killer].kills++;
-    if (allStats[data.victim]) allStats[data.victim].deaths++;
-    if (data.assist && allStats[data.assist]) allStats[data.assist].assists++;
+  socket.on(
+    "player_killed",
+    (data: {
+      victim: string;
+      killer: string;
+      assist?: string;
+      weapon?: string;
+      cause?: string;
+      explosionPos?: { x: number; y: number; z: number };
+    }) => {
+      if (allStats[data.killer]) allStats[data.killer].kills++;
+      if (allStats[data.victim]) allStats[data.victim].deaths++;
+      if (data.assist && allStats[data.assist]) allStats[data.assist].assists++;
 
-    const killerName = allStats[data.killer]?.name ?? "Desconhecido";
-    const victimName = allStats[data.victim]?.name ?? "Desconhecido";
-    const assistName = data.assist ? (allStats[data.assist]?.name ?? undefined) : undefined;
+      const killerName = allStats[data.killer]?.name ?? "Desconhecido";
+      const victimName = allStats[data.victim]?.name ?? "Desconhecido";
+      const assistName = data.assist
+        ? (allStats[data.assist]?.name ?? undefined)
+        : undefined;
 
-    showKillFeedEntry(killerName, victimName, data.killer === myId, data.weapon ?? 'ar', assistName);
+      showKillFeedEntry(
+        killerName,
+        victimName,
+        data.killer === myId,
+        data.weapon ?? "ar",
+        assistName,
+      );
 
-    if (data.victim === myId) {
-      setIsDead(true);
-      updateHudHp(0);
-      controls.unlock();
-      deathScreen.style.display = "flex";
-    } else {
-      const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
-      triggerRagdoll(data.victim, cause, data.explosionPos);
-    }
-  });
+      if (data.victim === myId) {
+        setIsDead(true);
+        updateHudHp(0);
+        controls.unlock();
+        deathScreen.style.display = "flex";
+      } else {
+        const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
+        triggerRagdoll(data.victim, cause, data.explosionPos);
+      }
+    },
+  );
 
   socket.on("player_respawned", (p: PlayerState) => {
     if (p.id === myId) {
@@ -163,20 +225,28 @@ export function setupSocketEvents() {
     alert(data.message);
   });
 
-  socket.on("grenade_launched", (data: {
-    origin: { x: number; y: number; z: number };
-    velocity: { x: number; y: number; z: number };
-  }) => {
-    spawnRemoteGrenade(
-      new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z),
-      new THREE.Vector3(data.velocity.x, data.velocity.y, data.velocity.z),
-    );
-  });
+  socket.on(
+    "grenade_launched",
+    (data: {
+      origin: { x: number; y: number; z: number };
+      velocity: { x: number; y: number; z: number };
+    }) => {
+      spawnRemoteGrenade(
+        new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z),
+        new THREE.Vector3(data.velocity.x, data.velocity.y, data.velocity.z),
+      );
+    },
+  );
 
-  socket.on("grenade_explode", (data: { position: { x: number; y: number; z: number } }) => {
-    cleanupRemoteGrenades();
-    explodeGrenade(new THREE.Vector3(data.position.x, data.position.y, data.position.z));
-  });
+  socket.on(
+    "grenade_explode",
+    (data: { position: { x: number; y: number; z: number } }) => {
+      cleanupRemoteGrenades();
+      explodeGrenade(
+        new THREE.Vector3(data.position.x, data.position.y, data.position.z),
+      );
+    },
+  );
 
   socket.on("shout_blast", (data: { victimId: string; origin: { x: number; y: number; z: number } }) => {
     // Determine victim world position: local player → camera, remote → mesh
@@ -201,5 +271,16 @@ export function setupSocketEvents() {
 
   socket.on("chat_message", (data: { name: string; message: string; id: string }) => {
     addMessage(data.name, data.message, false);
+  socket.on("weapon_switch", (data: { id: string; weaponId: string }) => {
+    if (data.id !== myId) {
+      swapOtherPlayerWeapon(data.id, data.weaponId as "ar" | "awp");
+    }
   });
+
+  socket.on(
+    "chat_message",
+    (data: { name: string; message: string; id: string }) => {
+      addMessage(data.name, data.message, false);
+    },
+  );
 }

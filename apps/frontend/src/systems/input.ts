@@ -1,24 +1,47 @@
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import { camera } from "../scene/setup";
 import {
-  setMoveForward, setMoveBackward, setMoveLeft, setMoveRight,
-  setWantsJump, isOnGround,
+  setMoveForward,
+  setMoveBackward,
+  setMoveLeft,
+  setMoveRight,
+  setWantsJump,
+  isOnGround,
 } from "./physics";
-import { handleShoot, startReload, switchWeapon, toggleScope, exitScope } from "./shooting";
+import {
+  handleShoot,
+  startReload,
+  switchWeapon,
+  toggleScope,
+  exitScope,
+} from "./shooting";
 import { throwGrenade } from "./grenade";
 import { activateAbility } from "./abilities";
 import { renderScoreboard } from "../ui/scoreboard";
 import { isChatOpen, openChat } from "../ui/chat";
+import {
+  showSettings,
+  isSettingsOpen,
+  getNormalSensitivity,
+} from "../ui/settings";
 
 export const controls = new PointerLockControls(camera, document.body);
 
 let gameStarted = false;
 let isDead = false;
 
-export function getIsDead() { return isDead; }
-export function setIsDead(v: boolean) { isDead = v; }
-export function getGameStarted() { return gameStarted; }
-export function setGameStarted(v: boolean) { gameStarted = v; }
+export function getIsDead() {
+  return isDead;
+}
+export function setIsDead(v: boolean) {
+  isDead = v;
+}
+export function getGameStarted() {
+  return gameStarted;
+}
+export function setGameStarted(v: boolean) {
+  gameStarted = v;
+}
 
 const startScreen = document.getElementById("start-screen")!;
 const scoreboard = document.getElementById("scoreboard")!;
@@ -31,11 +54,33 @@ controls.addEventListener("unlock", () => {
   setMoveRight(false);
   // Exit scope when ESC is pressed (AWP)
   exitScope();
+  // Show settings menu when pointer is unlocked during gameplay
+  if (gameStarted && !isDead) {
+    showSettings(() => {
+      controls.pointerSpeed = getNormalSensitivity();
+      controls.lock();
+    });
+  }
 });
 
 const SUPPRESS_KEYS = new Set([
-  "AltLeft", "AltRight", "MetaLeft", "MetaRight", "ContextMenu",
-  "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+  "AltLeft",
+  "AltRight",
+  "MetaLeft",
+  "MetaRight",
+  "ContextMenu",
+  "F1",
+  "F2",
+  "F3",
+  "F4",
+  "F5",
+  "F6",
+  "F7",
+  "F8",
+  "F9",
+  "F10",
+  "F11",
+  "F12",
 ]);
 
 window.addEventListener("keydown", (e) => {
@@ -60,6 +105,33 @@ window.addEventListener("keydown", (e) => {
     case "KeyR": startReload(); break;
     case "Digit1": switchWeapon("ar"); break;
     case "Digit2": switchWeapon("awp"); break;
+    case "KeyW":
+      setMoveForward(true);
+      break;
+    case "KeyA":
+      setMoveLeft(true);
+      break;
+    case "KeyS":
+      setMoveBackward(true);
+      break;
+    case "KeyD":
+      setMoveRight(true);
+      break;
+    case "Space":
+      if (isOnGround) setWantsJump(true);
+      break;
+    case "KeyQ":
+      throwGrenade(controls, isDead);
+      break;
+    case "KeyR":
+      startReload();
+      break;
+    case "Digit1":
+      switchWeapon("ar");
+      break;
+    case "Digit2":
+      switchWeapon("awp");
+      break;
     case "Tab":
       e.preventDefault();
       renderScoreboard();
@@ -71,10 +143,18 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("keyup", (e) => {
   if (isChatOpen()) return;
   switch (e.code) {
-    case "KeyW": setMoveForward(false); break;
-    case "KeyA": setMoveLeft(false); break;
-    case "KeyS": setMoveBackward(false); break;
-    case "KeyD": setMoveRight(false); break;
+    case "KeyW":
+      setMoveForward(false);
+      break;
+    case "KeyA":
+      setMoveLeft(false);
+      break;
+    case "KeyS":
+      setMoveBackward(false);
+      break;
+    case "KeyD":
+      setMoveRight(false);
+      break;
     case "Tab":
       e.preventDefault();
       scoreboard.classList.remove("visible");
@@ -87,6 +167,9 @@ window.addEventListener("mousedown", (e) => {
   if (e.button === 0) {
     // Left click: re-lock if unlocked, or shoot
     if (!controls.isLocked && gameStarted && !isDead) {
+      if (isSettingsOpen()) {
+        return; // let the settings menu handle clicks
+      }
       controls.lock();
       return;
     }
@@ -103,5 +186,6 @@ window.addEventListener("contextmenu", (e) => e.preventDefault());
 export function lockAndStart() {
   gameStarted = true;
   startScreen.style.display = "none";
+  controls.pointerSpeed = getNormalSensitivity();
   controls.lock();
 }

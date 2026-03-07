@@ -381,7 +381,7 @@ export function setupSocketEvents() {
 
   socket.on("weapon_switch", (data: { id: string; weaponId: string }) => {
     if (data.id !== myId) {
-      swapOtherPlayerWeapon(data.id, data.weaponId as "ar" | "awp");
+      swapOtherPlayerWeapon(data.id, data.weaponId as "ar" | "awp" | "katana");
     }
   });
 

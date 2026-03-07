@@ -257,6 +257,9 @@ export function registerHandlers(io: Server, socket: Socket) {
   });
 
   socket.on("weapon_switch", (data: { weaponId: string }) => {
+    if (players[socket.id]) {
+      players[socket.id].weaponId = data.weaponId;
+    }
     socket.broadcast.emit("weapon_switch", {
       id: socket.id,
       weaponId: data.weaponId,

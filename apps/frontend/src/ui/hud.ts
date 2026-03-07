@@ -22,6 +22,7 @@ hud.innerHTML = `
       <div id="hud-weapon-keys">
         <span class="wkey active" id="wkey-1">1 FAL</span>
         <span class="wkey" id="wkey-2">2 AWP</span>
+        <span class="wkey" id="wkey-3">3 KATANA</span>
       </div>
       <span id="hud-weapon-name">FAL</span>
     </div>
@@ -75,6 +76,7 @@ export function stopReloadRing() {
 }
 const wkey1 = document.getElementById("wkey-1") as HTMLElement;
 const wkey2 = document.getElementById("wkey-2") as HTMLElement;
+const wkey3 = document.getElementById("wkey-3") as HTMLElement;
 
 export function updateHudHp(hp: number) {
   const pct = Math.max(0, hp);
@@ -93,7 +95,7 @@ export function updateHudAmmo(
   reloading: boolean,
   reserve?: number | null,
 ) {
-  hudAmmoCurrent.textContent = String(current);
+  hudAmmoCurrent.textContent = current === Infinity ? "∞" : String(current);
   if (reserve !== undefined) {
     hudAmmoReserve.textContent = reserve === null ? "∞" : String(reserve);
   }
@@ -114,7 +116,9 @@ export function updateHudWeapon(w: WeaponDef) {
   hudWeaponName.dataset.weapon = w.id;
   wkey1.classList.toggle("active", w.id === "ar");
   wkey2.classList.toggle("active", w.id === "awp");
+  wkey3.classList.toggle("active", w.id === "katana");
   hudAmmoEl.classList.toggle("awp-ammo", w.id === "awp");
+  hudAmmoEl.classList.toggle("katana-ammo", w.id === "katana");
 }
 
 updateHudHp(100);

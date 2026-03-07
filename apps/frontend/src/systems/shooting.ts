@@ -5,7 +5,7 @@ import { mapBlocks } from "../scene/map";
 import { otherPlayers } from "../player/PlayerModel";
 import { isPlayerInvincible } from "../player/PlayerModel";
 import { socket } from "../network/socket";
-import { playShootSound, playAwpSound, playReloadSound } from "./audio";
+import { playShootSound, playAwpSound, playReloadSound, playKatanaSlashSound, playKatanaChargeSound } from "./audio";
 import { showHitMarker, stopLocalInvincibleBlink } from "../ui/overlays";
 import {
   updateHudAmmo,
@@ -21,8 +21,10 @@ import { getNormalSensitivity, getScopeSensitivity } from "../ui/settings";
 import { triggerScreenShake, triggerWeaponRecoil } from "./headBob";
 
 // ─── Weapon definitions ───────────────────────────────────────────────────────
+export type WeaponId = "ar" | "awp" | "katana";
+
 export interface WeaponDef {
-  id: "ar" | "awp";
+  id: WeaponId;
   name: string;
   label: string;
   magSize: number;
@@ -32,6 +34,8 @@ export interface WeaponDef {
   bulletColor: number;
   bulletSpeed: number;
   bulletMaxLife: number;
+  melee?: boolean; // true for melee weapons (no ammo, no bullets)
+  meleeRange?: number; // max hit distance for melee weapons
 }
 
 export const WEAPONS: Record<string, WeaponDef> = {
@@ -59,12 +63,26 @@ export const WEAPONS: Record<string, WeaponDef> = {
     bulletSpeed: 800,
     bulletMaxLife: 3.0,
   },
+  katana: {
+    id: "katana",
+    name: "KATANA",
+    label: "3",
+    magSize: Infinity,
+    reloadTime: 0,
+    fireRate: 0.5, // slash cooldown
+    damage: 45,
+    bulletColor: 0xff4444,
+    bulletSpeed: 0,
+    bulletMaxLife: 0,
+    melee: true,
+    meleeRange: 4.5,
+  },
 };
 
 export const MAG_SIZE = WEAPONS.ar.magSize;
 
 // ─── Weapon state ─────────────────────────────────────────────────────────────
-let currentWeaponId: "ar" | "awp" = "ar";
+let currentWeaponId: WeaponId = "ar";
 let ammo = WEAPONS.ar.magSize;
 let isReloading = false;
 let reloadTimer = 0;
@@ -101,12 +119,30 @@ export function getIsScoped() {
   return isScoped;
 }
 
+// ─── Katana charged leap state ───────────────────────────────────────────────
+let _katanaCharging = false;
+let _katanaChargeTime = 0;
+const KATANA_CHARGE_DURATION = 0.6; // seconds to fully charge
+const KATANA_LEAP_RANGE = 25; // max distance to find a target
+const KATANA_LEAP_SPEED = 40; // m/s movement towards target
+const KATANA_LEAP_DAMAGE = 80; // charged attack damage
+let _katanaLeaping = false;
+let _katanaLeapTarget: THREE.Vector3 | null = null;
+let _katanaLeapTargetId: string | null = null;
+
+export function isKatanaLeaping(): boolean {
+  return _katanaLeaping;
+}
+
 // ─── Switch weapon ────────────────────────────────────────────────────────────
-export function switchWeapon(id: "ar" | "awp") {
+export function switchWeapon(id: WeaponId) {
   if (id === currentWeaponId) return;
   if (isReloading) return; // Don't switch mid-reload
   // Exit scope if switching away from AWP
   if (isScoped) exitScope();
+  // Cancel katana charge if switching away
+  _katanaCharging = false;
+  _katanaChargeTime = 0;
   currentWeaponId = id;
   ammo = WEAPONS[id].magSize;
   isReloading = false;
@@ -117,6 +153,9 @@ export function switchWeapon(id: "ar" | "awp") {
     awpReserve = AWP_RESERVE_START;
     updateHudAmmo(ammo, false, awpReserve);
     document.body.classList.add("awp");
+  } else if (id === "katana") {
+    updateHudAmmo(Infinity, false, null);
+    document.body.classList.remove("awp");
   } else {
     updateHudAmmo(ammo, false, arReserve);
     document.body.classList.remove("awp");
@@ -169,6 +208,7 @@ export function exitScope() {
 
 // ─── Reload ───────────────────────────────────────────────────────────────────
 export function startReload() {
+  if (currentWeaponId === "katana") return; // Katana doesn't reload
   const w = getCurrentWeapon();
   if (isReloading || ammo === w.magSize) return;
   // Only reload if there are reserve bullets
@@ -306,11 +346,60 @@ function isHeadHit(hitObject: THREE.Object3D): boolean {
 
 export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
   if (!controls.isLocked || isDead) return;
+  const w = getCurrentWeapon();
+
+  // Melee (katana) path — no ammo, no bullets
+  if (w.melee) {
+    if (fireCooldown > 0) return;
+    stopLocalInvincibleBlink();
+    socket.emit("end_invincible");
+    fireCooldown = w.fireRate;
+    playKatanaSlashSound();
+    triggerScreenShake(0.08);
+    triggerWeaponRecoil(0.06);
+    window.dispatchEvent(new Event("katana-slash"));
+
+    // Melee raycast with range limit
+    raycaster.setFromCamera(_rayCenter, camera);
+    raycaster.far = w.meleeRange!;
+    _shotTargets.length = 0;
+    for (const id in otherPlayers) _shotTargets.push(otherPlayers[id]);
+    for (let i = 0; i < mapBlocks.length; i++) _shotTargets.push(mapBlocks[i]);
+
+    const hits = raycaster.intersectObjects(_shotTargets, true);
+    const firstPlayerHit = hits.find((h) => findPlayerGroup(h.object) !== null);
+    if (firstPlayerHit) {
+      const wallHit = hits.find((h) =>
+        mapBlocks.includes(h.object as THREE.Mesh),
+      );
+      const playerBlocked = wallHit && wallHit.distance < firstPlayerHit.distance;
+      if (!playerBlocked) {
+        const grp = findPlayerGroup(firstPlayerHit.object)!;
+        const tid = Object.keys(otherPlayers).find(
+          (id) => otherPlayers[id] === grp,
+        );
+        if (tid && !isPlayerInvincible(tid)) {
+          const headshot = isHeadHit(firstPlayerHit.object);
+          const dmg = headshot ? w.damage * 2 : w.damage;
+          socket.emit("hit_player", {
+            targetId: tid,
+            damage: dmg,
+            weaponId: w.id,
+            headshot,
+          });
+          showHitMarker(headshot);
+        }
+      }
+    }
+    raycaster.far = Infinity; // restore default
+    return;
+  }
+
+  // Ranged weapon path
   if (isReloading || ammo <= 0) {
     if (ammo <= 0 && !isReloading) startReload();
     return;
   }
-  const w = getCurrentWeapon();
   if (fireCooldown > 0) return; // Bolt-action / fire rate limiter
 
   // Cancel invincibility the moment the player shoots
@@ -400,6 +489,111 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
     direction: { x: _tmpShootDir.x, y: _tmpShootDir.y, z: _tmpShootDir.z },
     color: w.bulletColor,
   });
+}
+
+// ─── Katana charged leap attack (right-click) ────────────────────────────────
+const _leapDir = new THREE.Vector3();
+const _playerPos = new THREE.Vector3();
+
+export function startKatanaCharge() {
+  if (currentWeaponId !== "katana" || _katanaLeaping || _katanaCharging) return;
+  _katanaCharging = true;
+  _katanaChargeTime = 0;
+  playKatanaChargeSound();
+}
+
+export function releaseKatanaCharge(isDead: boolean) {
+  if (!_katanaCharging) return;
+  _katanaCharging = false;
+
+  if (isDead || _katanaChargeTime < KATANA_CHARGE_DURATION) {
+    _katanaChargeTime = 0;
+    return;
+  }
+  _katanaChargeTime = 0;
+
+  // Find the closest player to crosshair within range
+  stopLocalInvincibleBlink();
+  socket.emit("end_invincible");
+
+  camera.getWorldPosition(_playerPos);
+  camera.getWorldDirection(_leapDir);
+
+  let bestTarget: { id: string; pos: THREE.Vector3; dot: number } | null = null;
+  for (const id in otherPlayers) {
+    if (isPlayerInvincible(id)) continue;
+    const grp = otherPlayers[id];
+    if (!grp.visible) continue;
+    const targetPos = grp.position.clone();
+    const toTarget = targetPos.clone().sub(_playerPos);
+    const dist = toTarget.length();
+    if (dist > KATANA_LEAP_RANGE) continue;
+    toTarget.normalize();
+    const dot = toTarget.dot(_leapDir);
+    if (dot < 0.5) continue; // must be roughly in front (within ~60deg cone)
+    if (!bestTarget || dot > bestTarget.dot) {
+      bestTarget = { id, pos: targetPos, dot };
+    }
+  }
+
+  if (bestTarget) {
+    _katanaLeaping = true;
+    _katanaLeapTarget = bestTarget.pos.clone();
+    _katanaLeapTarget.y = _playerPos.y; // keep same height initially
+    _katanaLeapTargetId = bestTarget.id;
+    window.dispatchEvent(new Event("katana-leap-start"));
+  }
+}
+
+export function updateKatanaCharge(delta: number) {
+  if (_katanaCharging) {
+    _katanaChargeTime = Math.min(_katanaChargeTime + delta, KATANA_CHARGE_DURATION);
+  }
+}
+
+export function getKatanaChargeProgress(): number {
+  if (!_katanaCharging) return 0;
+  return Math.min(_katanaChargeTime / KATANA_CHARGE_DURATION, 1);
+}
+
+/** Called each frame from the main loop to drive the katana leap movement. */
+export function updateKatanaLeap(delta: number): THREE.Vector3 | null {
+  if (!_katanaLeaping || !_katanaLeapTarget) return null;
+
+  camera.getWorldPosition(_playerPos);
+  const toTarget = _katanaLeapTarget.clone().sub(_playerPos);
+  toTarget.y = 0;
+  const dist = toTarget.length();
+
+  if (dist < 1.5) {
+    // Arrived — deal damage
+    _katanaLeaping = false;
+    if (_katanaLeapTargetId && otherPlayers[_katanaLeapTargetId]) {
+      if (!isPlayerInvincible(_katanaLeapTargetId)) {
+        socket.emit("hit_player", {
+          targetId: _katanaLeapTargetId,
+          damage: KATANA_LEAP_DAMAGE,
+          weaponId: "katana",
+          headshot: false,
+        });
+        showHitMarker(false);
+      }
+    }
+    triggerScreenShake(0.3);
+    playKatanaSlashSound();
+    window.dispatchEvent(new Event("katana-leap-end"));
+    _katanaLeapTarget = null;
+    _katanaLeapTargetId = null;
+    return null;
+  }
+
+  // Move towards target
+  toTarget.normalize();
+  const step = KATANA_LEAP_SPEED * delta;
+  // Add upward arc: jump up in first half, come down in second
+  const moveVec = toTarget.multiplyScalar(step);
+  moveVec.y = 8 * delta; // slight upward force during leap
+  return moveVec;
 }
 
 function bulletHitsBlock(pos: THREE.Vector3): boolean {

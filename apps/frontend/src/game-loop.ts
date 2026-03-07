@@ -9,7 +9,7 @@ import {
   isSliding,
   getSlideHeightOffset,
 } from "./systems/physics";
-import { updateBullets, updateAmmo } from "./systems/shooting";
+import { updateBullets, updateAmmo, updateKatanaCharge, updateKatanaLeap } from "./systems/shooting";
 import { updateGrenade } from "./systems/grenade";
 import { updateMinimap } from "./ui/minimap";
 import { getMyId } from "./network/events";
@@ -95,6 +95,13 @@ export function animate() {
 
   updateBullets(delta);
   updateAmmo(delta);
+  updateKatanaCharge(delta);
+
+  // Drive katana leap movement
+  const leapMove = updateKatanaLeap(delta);
+  if (leapMove) {
+    camera.position.add(leapMove);
+  }
   updateGrenade(delta);
   updateRagdolls(delta);
   updateFlings(delta);

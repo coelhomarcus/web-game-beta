@@ -51,6 +51,7 @@ document.getElementById("app")!.appendChild(renderer.domElement);
 import {
   makeWeapon,
   makeAwpModel,
+  makeKatanaModel,
   makeFirstPersonArms,
 } from "./player/PlayerModel";
 import { getCurrentWeapon } from "./systems/shooting";
@@ -64,15 +65,26 @@ setFpWeapon(fpWeapon);
 setFpArms(fpArms);
 scene.add(controls.object);
 
+function makeFpWeaponForId(id: string): import("three").Group {
+  if (id === "katana") return makeKatanaModel(true);
+  if (id === "awp") return makeAwpModel(true);
+  return makeWeapon(true);
+}
+
+function armVariantForId(id: string): "rifle" | "awp" | "katana" {
+  if (id === "katana") return "katana";
+  if (id === "awp") return "awp";
+  return "rifle";
+}
+
 // Listen for weapon switch events to swap the FP model and arms
 window.addEventListener("weapon-switched", () => {
   camera.remove(fpWeapon);
   camera.remove(fpArms);
   const w = getCurrentWeapon();
-  const isAwp = w.id === "awp";
-  fpWeapon = isAwp ? makeAwpModel(true) : makeWeapon(true);
+  fpWeapon = makeFpWeaponForId(w.id);
   fpArms = makeFirstPersonArms(
-    isAwp ? "awp" : "rifle",
+    armVariantForId(w.id),
     localStorage.getItem("fps_arena_color") || getMyColor() || undefined,
   );
   camera.add(fpWeapon);
@@ -83,13 +95,29 @@ window.addEventListener("weapon-switched", () => {
   socket.emit("weapon_switch", { weaponId: w.id });
 });
 
+// Debug: live-refresh weapon model when tweaking transforms in console
+window.addEventListener("weapon-switched-debug", () => {
+  camera.remove(fpWeapon);
+  camera.remove(fpArms);
+  const w = getCurrentWeapon();
+  fpWeapon = makeFpWeaponForId(w.id);
+  fpArms = makeFirstPersonArms(
+    armVariantForId(w.id),
+    localStorage.getItem("fps_arena_color") || getMyColor() || undefined,
+  );
+  camera.add(fpWeapon);
+  camera.add(fpArms);
+  setFpWeapon(fpWeapon);
+  setFpArms(fpArms);
+});
+
 // Recreate FP arms with the server-assigned player color once we get it
 window.addEventListener("local-player-inited", ((e: CustomEvent) => {
   camera.remove(fpArms);
   const w = getCurrentWeapon();
   // Prefer any colour already derived from the face image
   const savedColor = localStorage.getItem("fps_arena_color") || e.detail.color;
-  fpArms = makeFirstPersonArms(w.id === "awp" ? "awp" : "rifle", savedColor);
+  fpArms = makeFirstPersonArms(armVariantForId(w.id), savedColor);
   camera.add(fpArms);
   setFpArms(fpArms);
 }) as EventListener);
@@ -98,10 +126,7 @@ window.addEventListener("local-player-inited", ((e: CustomEvent) => {
 window.addEventListener("my-color-changed", ((e: CustomEvent) => {
   camera.remove(fpArms);
   const w = getCurrentWeapon();
-  fpArms = makeFirstPersonArms(
-    w.id === "awp" ? "awp" : "rifle",
-    e.detail.color,
-  );
+  fpArms = makeFirstPersonArms(armVariantForId(w.id), e.detail.color);
   camera.add(fpArms);
   setFpArms(fpArms);
 }) as EventListener);
@@ -110,7 +135,7 @@ window.addEventListener("my-color-changed", ((e: CustomEvent) => {
 window.addEventListener("weapon-model-loaded", () => {
   const w = getCurrentWeapon();
   camera.remove(fpWeapon);
-  fpWeapon = w.id === "awp" ? makeAwpModel(true) : makeWeapon(true);
+  fpWeapon = makeFpWeaponForId(w.id);
   camera.add(fpWeapon);
   setFpWeapon(fpWeapon);
 });

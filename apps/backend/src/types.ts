@@ -15,6 +15,7 @@ export interface PlayerState {
   isInvincible: boolean;
   face?: string;
   isSliding?: boolean;
+  weaponId?: string;
 }
 
 export interface BoxBounds {

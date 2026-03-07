@@ -17,6 +17,9 @@ import {
   toggleScope,
   exitScope,
   setMouseHeld,
+  getCurrentWeapon,
+  startKatanaCharge,
+  releaseKatanaCharge,
 } from "./shooting";
 import { throwGrenade } from "./grenade";
 import { activateAbility } from "./abilities";
@@ -193,6 +196,9 @@ window.addEventListener("keydown", (e) => {
     case "Digit2":
       switchWeapon("awp");
       break;
+    case "Digit3":
+      switchWeapon("katana");
+      break;
     case "Tab":
       e.preventDefault();
       renderScoreboard();
@@ -249,13 +255,21 @@ window.addEventListener("mousedown", (e) => {
     setMouseHeld(true);
     handleShoot(isDead, controls);
   } else if (e.button === 2) {
-    // Right-click: toggle scope (AWP)
-    if (controls.isLocked && !isDead) toggleScope();
+    // Right-click: toggle scope (AWP) or start katana charge
+    if (controls.isLocked && !isDead) {
+      const w = getCurrentWeapon();
+      if (w.id === "katana") {
+        startKatanaCharge();
+      } else {
+        toggleScope();
+      }
+    }
   }
 });
 
 window.addEventListener("mouseup", (e) => {
   if (e.button === 0) setMouseHeld(false);
+  if (e.button === 2) releaseKatanaCharge(isDead);
 });
 
 // Prevent context menu on right-click

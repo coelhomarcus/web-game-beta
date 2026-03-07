@@ -114,7 +114,7 @@ function handleGrenadeExplosion(io: Server, throwerId: string, ep: Vec3) {
     if (target.hp <= 0) {
       killPlayer(io, id, throwerId, "grenade", ep);
     } else {
-      io.emit("player_hit", { id, hp: target.hp, damage: dmg });
+      io.emit("player_hit", { id, hp: target.hp, damage: dmg, from: ep });
     }
   }
 }
@@ -216,7 +216,7 @@ export function registerHandlers(io: Server, socket: Socket) {
       if (target.hp <= 0) {
         killPlayer(io, id, socket.id, "grenade", origin);
       } else {
-        io.emit("player_hit", { id, hp: target.hp });
+        io.emit("player_hit", { id, hp: target.hp, from: origin });
       }
 
       // Broadcast visual fling to all clients (ragdoll-lite even if alive)
@@ -256,10 +256,14 @@ export function registerHandlers(io: Server, socket: Socket) {
         damageLog[data.targetId][socket.id] =
           (damageLog[data.targetId][socket.id] ?? 0) + dmg;
 
+        const attacker = players[socket.id];
+        const from = attacker
+          ? { x: attacker.position.x, y: attacker.position.y, z: attacker.position.z }
+          : undefined;
         if (target.hp <= 0) {
           killPlayer(io, target.id, socket.id, "bullet");
         } else {
-          io.emit("player_hit", { id: target.id, hp: target.hp, damage: dmg });
+          io.emit("player_hit", { id: target.id, hp: target.hp, damage: dmg, from });
         }
       }
     },

@@ -12,6 +12,19 @@ let bobTimer = 0;
 let bobY = 0;
 let bobRoll = 0;
 
+// ─── Screen shake state ───────────────────────────────────────────────────────
+let shakeIntensity = 0;
+let shakeOffsetX = 0;
+let shakeOffsetY = 0;
+const SHAKE_DECAY = 12; // how fast the shake fades out
+
+// ─── Weapon recoil state ──────────────────────────────────────────────────────
+let recoilKickZ = 0;       // current backward offset
+let recoilKickRot = 0;     // current upward rotation (pitch)
+let recoilTarget = 0;      // target kick magnitude
+const RECOIL_SNAP = 35;    // how fast the gun kicks back
+const RECOIL_RECOVER = 8;  // how fast the gun returns to rest
+
 // Reference to the first-person weapon so it can be swayed independently
 let fpWeaponRef: THREE.Group | null = null;
 let weaponBaseY = 0;
@@ -32,12 +45,27 @@ export function setFpArms(arms: THREE.Group | null): void {
   fpArmsRef = arms;
 }
 
+/** Trigger a screen shake (call from shooting, explosions, etc.). */
+export function triggerScreenShake(intensity: number): void {
+  shakeIntensity = Math.max(shakeIntensity, intensity);
+}
+
+/** Trigger weapon recoil kick (call when firing). */
+export function triggerWeaponRecoil(kick: number): void {
+  recoilTarget = kick;
+}
+
 /**
  * Remove the bobbing offset that was applied last frame.
  * Must be called BEFORE updatePhysics so physics works on the real player Y.
  */
 export function removeBobOffset(): void {
   camera.position.y -= bobY;
+  // Undo last frame's shake
+  camera.position.x -= shakeOffsetX;
+  camera.position.y -= shakeOffsetY;
+  shakeOffsetX = 0;
+  shakeOffsetY = 0;
 }
 
 /**
@@ -68,15 +96,44 @@ export function applyBobOffset(delta: number, active: boolean): void {
   // Apply vertical bob to the camera
   camera.position.y += bobY;
 
+  // Apply screen shake
+  if (shakeIntensity > 0.001) {
+    shakeOffsetX = (Math.random() * 2 - 1) * shakeIntensity;
+    shakeOffsetY = (Math.random() * 2 - 1) * shakeIntensity;
+    camera.position.x += shakeOffsetX;
+    camera.position.y += shakeOffsetY;
+    shakeIntensity *= Math.max(0, 1 - SHAKE_DECAY * delta);
+  } else {
+    shakeIntensity = 0;
+  }
+
+  // ─── Weapon recoil animation ────────────────────────────────────────────
+  if (recoilTarget > 0) {
+    // Snap toward the kick target
+    recoilKickZ += (recoilTarget - recoilKickZ) * Math.min(1, delta * RECOIL_SNAP);
+    recoilKickRot += (recoilTarget * 0.6 - recoilKickRot) * Math.min(1, delta * RECOIL_SNAP);
+    // Once close enough, start recovery
+    if (recoilKickZ >= recoilTarget * 0.9) recoilTarget = 0;
+  } else {
+    // Smoothly return to rest
+    recoilKickZ *= Math.max(0, 1 - RECOIL_RECOVER * delta);
+    recoilKickRot *= Math.max(0, 1 - RECOIL_RECOVER * delta);
+    if (Math.abs(recoilKickZ) < 0.0005) { recoilKickZ = 0; recoilKickRot = 0; }
+  }
+
   // Apply independent weapon sway so the gun feels alive
   if (fpWeaponRef) {
     fpWeaponRef.position.y = weaponBaseY + bobY * 0.9;
+    fpWeaponRef.position.z = -recoilKickZ;
     fpWeaponRef.rotation.z = -bobRoll * 2;
+    fpWeaponRef.rotation.x = -recoilKickRot;
   }
 
   // Arms follow the weapon bob exactly
   if (fpArmsRef) {
     fpArmsRef.position.y = bobY * 0.9;
+    fpArmsRef.position.z = -recoilKickZ;
     fpArmsRef.rotation.z = -bobRoll * 2;
+    fpArmsRef.rotation.x = -recoilKickRot;
   }
 }

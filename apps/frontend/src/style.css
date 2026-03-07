@@ -797,6 +797,42 @@ body.scoped #crosshair {
   opacity: 1;
 }
 
+/* ── Damage direction indicator ─────────────────────────────────────────────── */
+#damage-direction {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 120;
+}
+
+.dmg-arrow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 18px;
+  margin-left: -2px;
+  margin-top: -58px;
+  background: rgba(255, 20, 20, 0.85);
+  border-radius: 2px;
+  transform-origin: 2px 58px;
+  opacity: 0;
+  transition: opacity 0.08s;
+  filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.6));
+}
+
+.dmg-arrow.active {
+  opacity: 1;
+}
+
+.dmg-arrow.fade-out {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
 /* ── Scope overlay ──────────────────────────────────────────────────────────── */
 #scope-overlay {
   display: none;

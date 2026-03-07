@@ -16,6 +16,7 @@ import {
 import { showScope, hideScope } from "../ui/overlays";
 import { controls } from "./input";
 import { getNormalSensitivity, getScopeSensitivity } from "../ui/settings";
+import { triggerScreenShake, triggerWeaponRecoil } from "./headBob";
 
 // ─── Weapon definitions ───────────────────────────────────────────────────────
 export interface WeaponDef {
@@ -259,8 +260,12 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
   if (currentWeaponId === "awp") {
     playAwpSound();
     if (isScoped) exitScope();
+    triggerScreenShake(0.5);
+    triggerWeaponRecoil(0.12);
   } else {
     playShootSound();
+    triggerScreenShake(0.045);
+    triggerWeaponRecoil(0.04);
   }
 
   raycaster.setFromCamera(_rayCenter, camera);

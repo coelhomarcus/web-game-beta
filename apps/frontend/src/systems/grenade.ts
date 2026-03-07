@@ -4,6 +4,7 @@ import { scene, camera } from "../scene/setup";
 import { mapBlocks } from "../scene/map";
 import { socket } from "../network/socket";
 import { playGrenadeThrowSound, playExplosionSound } from "./audio";
+import { triggerScreenShake } from "./headBob";
 
 interface ActiveGrenade {
   mesh: THREE.Mesh;
@@ -76,6 +77,14 @@ export function spawnRemoteGrenade(origin: THREE.Vector3, vel: THREE.Vector3) {
 
 export function explodeGrenade(pos: THREE.Vector3) {
   playExplosionSound();
+
+  // Distance-based screen shake — stronger when closer
+  const dist = camera.position.distanceTo(pos);
+  const MAX_SHAKE_DIST = 20;
+  if (dist < MAX_SHAKE_DIST) {
+    const intensity = 0.8 * (1 - dist / MAX_SHAKE_DIST);
+    triggerScreenShake(intensity);
+  }
 
   const flashGeo = new THREE.SphereGeometry(0.5, 8, 8);
   const flashMat = new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.9 });

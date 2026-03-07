@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { otherPlayers } from "./playerState";
+import { otherPlayers, networkTargets } from "./playerState";
 import { isRagdollActive } from "./ragdollSystem";
 
 // ─── Animation constants (exported for playerBody to use when building rigs) ──
@@ -23,6 +23,18 @@ interface WalkState {
 
 export const walkState: Map<string, WalkState> = new Map();
 
+// Track which remote players are sliding (set from events.ts game_state)
+export const slidingPlayers: Set<string> = new Set();
+
+const SLIDE_TORSO_TILT = -0.7; // lean backward (radians)
+const SLIDE_LEG_EXTEND = 1.2; // legs kicked forward
+const SLIDE_ARM_UP = 0.5; // arms stay raised
+const SLIDE_LERP = 8; // how fast to blend into/out of slide pose
+const SLIDE_BODY_DROP = 0.55; // how far the 3P body drops during slide
+
+// Per-player smooth slide Y offset (0 → SLIDE_BODY_DROP)
+const slideYOffset: Map<string, number> = new Map();
+
 // ─── Main update ──────────────────────────────────────────────────────────────
 
 export function updatePlayerAnimations(delta: number): void {
@@ -31,8 +43,31 @@ export function updatePlayerAnimations(delta: number): void {
     const grp = otherPlayers[id];
     if (!grp.visible) {
       walkState.delete(id);
+      networkTargets.delete(id);
+      slideYOffset.delete(id);
       continue;
     }
+
+    // ── Per-frame position interpolation (smooth 60fps, not just on tick) ──
+    const target = networkTargets.get(id);
+    const sliding = slidingPlayers.has(id);
+    if (target) {
+      const posLerp = Math.min(1, delta * 12); // ~12/s → smooth catch-up
+      // Lerp X/Z always; handle Y separately so we can drop it during slides
+      grp.position.x += (target.x - grp.position.x) * posLerp;
+      grp.position.z += (target.z - grp.position.z) * posLerp;
+      if (!sliding) {
+        grp.position.y += (target.y - grp.position.y) * posLerp;
+      }
+    }
+
+    // ── Smooth slide body drop ───────────────────────────────────────────────
+    let curSlideY = slideYOffset.get(id) ?? 0;
+    const slideYTarget = sliding ? SLIDE_BODY_DROP : 0;
+    curSlideY += (slideYTarget - curSlideY) * Math.min(1, delta * SLIDE_LERP);
+    if (Math.abs(curSlideY - slideYTarget) < 0.001) curSlideY = slideYTarget;
+    slideYOffset.set(id, curSlideY);
+    grp.position.y = (target ? target.y : grp.position.y) - curSlideY;
 
     let ws = walkState.get(id);
     if (!ws) {
@@ -61,29 +96,47 @@ export function updatePlayerAnimations(delta: number): void {
     const ll = grp.getObjectByName("leftLeg") as THREE.Group | null;
     const rl = grp.getObjectByName("rightLeg") as THREE.Group | null;
     const wep = grp.getObjectByName("weapon3p") as THREE.Group | null;
+    const torso = grp.getObjectByName("torso") as THREE.Mesh | null;
 
-    const sinPhase = Math.sin(ws.timer);
+    const sLerp = Math.min(1, delta * SLIDE_LERP);
 
-    // Arms swing opposite to their corresponding leg (natural gait)
-    if (la) {
-      const t = ARM_HOLD_LEFT + sinPhase * ARM_SWING * blend;
-      la.rotation.x += (t - la.rotation.x) * lerpFactor;
-    }
-    if (ra) {
-      const t = ARM_HOLD_RIGHT - sinPhase * ARM_SWING * blend;
-      ra.rotation.x += (t - ra.rotation.x) * lerpFactor;
-    }
-    if (ll) {
-      const t = sinPhase * LEG_SWING * blend;
-      ll.rotation.x += (t - ll.rotation.x) * lerpFactor;
-    }
-    if (rl) {
-      const t = -sinPhase * LEG_SWING * blend;
-      rl.rotation.x += (t - rl.rotation.x) * lerpFactor;
-    }
-    // Weapon pitches slightly with right arm for a natural look
-    if (wep && ra) {
-      wep.rotation.x = (ra.rotation.x - ARM_HOLD_RIGHT) * 0.5;
+    if (sliding) {
+      // Slide pose: torso tilts back, legs extend forward, arms stay up
+      if (torso)
+        torso.rotation.x += (SLIDE_TORSO_TILT - torso.rotation.x) * sLerp;
+      if (la)
+        la.rotation.x += (ARM_HOLD_LEFT + SLIDE_ARM_UP - la.rotation.x) * sLerp;
+      if (ra)
+        ra.rotation.x +=
+          (ARM_HOLD_RIGHT + SLIDE_ARM_UP - ra.rotation.x) * sLerp;
+      if (ll) ll.rotation.x += (SLIDE_LEG_EXTEND - ll.rotation.x) * sLerp;
+      if (rl) rl.rotation.x += (SLIDE_LEG_EXTEND - rl.rotation.x) * sLerp;
+      if (wep && ra) wep.rotation.x = (ra.rotation.x - ARM_HOLD_RIGHT) * 0.5;
+    } else {
+      // Normal walk animation
+      if (torso) torso.rotation.x += (0 - torso.rotation.x) * sLerp;
+
+      const sinPhase = Math.sin(ws.timer);
+
+      if (la) {
+        const t = ARM_HOLD_LEFT + sinPhase * ARM_SWING * blend;
+        la.rotation.x += (t - la.rotation.x) * lerpFactor;
+      }
+      if (ra) {
+        const t = ARM_HOLD_RIGHT - sinPhase * ARM_SWING * blend;
+        ra.rotation.x += (t - ra.rotation.x) * lerpFactor;
+      }
+      if (ll) {
+        const t = sinPhase * LEG_SWING * blend;
+        ll.rotation.x += (t - ll.rotation.x) * lerpFactor;
+      }
+      if (rl) {
+        const t = -sinPhase * LEG_SWING * blend;
+        rl.rotation.x += (t - rl.rotation.x) * lerpFactor;
+      }
+      if (wep && ra) {
+        wep.rotation.x = (ra.rotation.x - ARM_HOLD_RIGHT) * 0.5;
+      }
     }
   }
 }

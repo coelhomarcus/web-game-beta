@@ -180,16 +180,20 @@ export function registerHandlers(io: Server, socket: Socket) {
     socket.broadcast.emit("player_color_set", { id: socket.id, color });
   });
 
-  socket.on("update_state", (data: { position: Vec3; rotation: Vec3 }) => {
-    if (players[socket.id] && !players[socket.id].isDead) {
-      const pos = { ...data.position };
-      pos.x = clampMapCoord(pos.x);
-      pos.z = clampMapCoord(pos.z);
-      for (const box of MAP_BOXES) resolveBoxCollision(pos, box);
-      players[socket.id].position = pos;
-      players[socket.id].rotation = data.rotation;
-    }
-  });
+  socket.on(
+    "update_state",
+    (data: { position: Vec3; rotation: Vec3; isSliding?: boolean }) => {
+      if (players[socket.id] && !players[socket.id].isDead) {
+        const pos = { ...data.position };
+        pos.x = clampMapCoord(pos.x);
+        pos.z = clampMapCoord(pos.z);
+        for (const box of MAP_BOXES) resolveBoxCollision(pos, box);
+        players[socket.id].position = pos;
+        players[socket.id].rotation = data.rotation;
+        players[socket.id].isSliding = !!data.isSliding;
+      }
+    },
+  );
 
   socket.on("shout", (data: { origin: Vec3; forward: Vec3 }) => {
     const SHOUT_RANGE = 5; // metres
@@ -253,6 +257,9 @@ export function registerHandlers(io: Server, socket: Socket) {
   });
 
   socket.on("weapon_switch", (data: { weaponId: string }) => {
+    if (players[socket.id]) {
+      players[socket.id].weaponId = data.weaponId;
+    }
     socket.broadcast.emit("weapon_switch", {
       id: socket.id,
       weaponId: data.weaponId,

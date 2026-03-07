@@ -7,3 +7,6 @@ export const playerOriginalMaterial: Record<
   THREE.MeshStandardMaterial
 > = {};
 export const playerCurrentNames: Record<string, string> = {};
+
+// Network interpolation targets — updated on game_state, consumed every render frame
+export const networkTargets: Map<string, THREE.Vector3> = new Map();

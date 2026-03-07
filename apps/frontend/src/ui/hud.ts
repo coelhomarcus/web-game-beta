@@ -8,11 +8,9 @@ hud.innerHTML = `
       <div id="hud-grenade">
         <span id="hud-grenade-icon">💣</span>
         <span id="hud-grenade-label">Q</span>
-        <div id="hud-grenade-cd"></div>
       </div>
     </div>
     <div id="hud-hp">
-      <div id="hud-hp-bar-bg"><div id="hud-hp-bar"></div></div>
       <div id="hud-hp-bottom">
         <span id="hud-hp-value">100</span>
         <span id="hud-hp-label">HP</span>
@@ -24,19 +22,22 @@ hud.innerHTML = `
       <div id="hud-weapon-keys">
         <span class="wkey active" id="wkey-1">1 FAL</span>
         <span class="wkey" id="wkey-2">2 AWP</span>
+        <span class="wkey" id="wkey-3">3 KATANA</span>
       </div>
       <span id="hud-weapon-name">FAL</span>
     </div>
     <div id="hud-ammo">
-      <span id="hud-ammo-current">20</span><span id="hud-ammo-sep"> / </span><span id="hud-ammo-reserve">∞</span>
+      <span id="hud-ammo-current">30</span><span id="hud-ammo-sep"> / </span><span id="hud-ammo-reserve">90</span>
     </div>
   </div>`;
 document.body.appendChild(hud);
 
-const hudHpBar = document.getElementById("hud-hp-bar") as HTMLElement;
 const hudHpValue = document.getElementById("hud-hp-value") as HTMLElement;
 const hudAmmoCurrent = document.getElementById(
   "hud-ammo-current",
+) as HTMLElement;
+const hudAmmoReserve = document.getElementById(
+  "hud-ammo-reserve",
 ) as HTMLElement;
 const hudAmmoEl = document.getElementById("hud-ammo") as HTMLElement;
 const hudWeaponName = document.getElementById("hud-weapon-name") as HTMLElement;
@@ -75,25 +76,29 @@ export function stopReloadRing() {
 }
 const wkey1 = document.getElementById("wkey-1") as HTMLElement;
 const wkey2 = document.getElementById("wkey-2") as HTMLElement;
+const wkey3 = document.getElementById("wkey-3") as HTMLElement;
 
 export function updateHudHp(hp: number) {
   const pct = Math.max(0, hp);
-  hudHpBar.style.width = `${pct}%`;
   hudHpValue.textContent = String(pct);
   if (pct > 70) {
-    hudHpBar.style.background = "#4ade80";
     hudHpValue.style.color = "#ffffff";
   } else if (pct > 30) {
-    hudHpBar.style.background = "#fbbf24";
     hudHpValue.style.color = "#fbbf24";
   } else {
-    hudHpBar.style.background = "#ff4655";
     hudHpValue.style.color = "#ff4655";
   }
 }
 
-export function updateHudAmmo(current: number, reloading: boolean) {
-  hudAmmoCurrent.textContent = String(current);
+export function updateHudAmmo(
+  current: number,
+  reloading: boolean,
+  reserve?: number | null,
+) {
+  hudAmmoCurrent.textContent = current === Infinity ? "∞" : String(current);
+  if (reserve !== undefined) {
+    hudAmmoReserve.textContent = reserve === null ? "∞" : String(reserve);
+  }
   if (reloading) {
     hudAmmoEl.classList.add("reloading");
   } else {
@@ -111,7 +116,9 @@ export function updateHudWeapon(w: WeaponDef) {
   hudWeaponName.dataset.weapon = w.id;
   wkey1.classList.toggle("active", w.id === "ar");
   wkey2.classList.toggle("active", w.id === "awp");
+  wkey3.classList.toggle("active", w.id === "katana");
   hudAmmoEl.classList.toggle("awp-ammo", w.id === "awp");
+  hudAmmoEl.classList.toggle("katana-ammo", w.id === "katana");
 }
 
 updateHudHp(100);

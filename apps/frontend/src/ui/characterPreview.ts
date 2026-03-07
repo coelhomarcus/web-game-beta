@@ -28,8 +28,8 @@ export function initCharacterPreview(container: HTMLElement): void {
   // No background — canvas is transparent
 
   const cam = new THREE.PerspectiveCamera(38, W / H, 0.1, 50);
-  cam.position.set(0, 0.2, 3.2);
-  cam.lookAt(0, 0.1, 0);
+  cam.position.set(0, 0.1, 3.2);
+  cam.lookAt(0, 0, 0);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0);
@@ -280,8 +280,8 @@ function buildPreviewCharacter(color: string | number): {
   grp.add(makeLimb(mat, 0.27, 0.2, 0, 0.18, 0.55, 0.18, -0.27));
 
   // Legs
-  grp.add(makeLimb(mat, -0.12, -0.4, 0, 0.2, 0.6, 0.2, -0.3));
-  grp.add(makeLimb(mat, 0.12, -0.4, 0, 0.2, 0.6, 0.2, -0.3));
+  grp.add(makeLimb(mat, -0.12, -0.35, 0, 0.2, 0.6, 0.2, -0.3));
+  grp.add(makeLimb(mat, 0.12, -0.35, 0, 0.2, 0.6, 0.2, -0.3));
 
   return { group: grp, facePlane, faceVisor, bodyMat: mat };
 }

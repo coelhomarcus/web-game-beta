@@ -4,9 +4,9 @@
 
 export { otherPlayers, playerOriginalMaterial, playerCurrentNames } from "./playerState";
 
-export { FAL_FP, AWP_FP, FAL_3P, AWP_3P } from "./weaponConfig";
+export { FAL_FP, AWP_FP, FAL_3P, AWP_3P, KATANA_FP, KATANA_3P } from "./weaponConfig";
 
-export { makeWeapon, makeAwpModel, makeFirstPersonArms } from "./weaponModels";
+export { makeWeapon, makeAwpModel, makeKatanaModel, makeFirstPersonArms } from "./weaponModels";
 
 export {
   addOtherPlayer,

@@ -16,7 +16,12 @@ import {
   isFlinging,
   showDamageNumber,
   swapOtherPlayerWeapon,
+  createLocalCorpse,
+  cleanupLocalCorpse,
+  applyFaceTexture,
+  applyPlayerColor,
 } from "../player/PlayerModel";
+import { storeFaceDataUrl, getFaceDataUrl } from "../utils/faceTexture";
 import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
 import { velocity, applyKnockback } from "../systems/physics";
@@ -31,10 +36,12 @@ import { updateHudHp } from "../ui/hud";
 import { allStats, setMyIdRef } from "../ui/scoreboard";
 import {
   flashDamage,
+  showDamageDirection,
   showKillFeedEntry,
   startLocalInvincibleBlink,
 } from "../ui/overlays";
 import { addMessage } from "../ui/chat";
+import { triggerScreenShake } from "../systems/headBob";
 
 let myId = "";
 let myColor = "";
@@ -50,6 +57,12 @@ export function getMyId() {
 }
 export function getMyColor() {
   return myColor;
+}
+export function setMyColor(hex: string) {
+  myColor = hex;
+  window.dispatchEvent(
+    new CustomEvent("my-color-changed", { detail: { color: hex } }),
+  );
 }
 export function getPlayerName() {
   return playerName;
@@ -82,13 +95,20 @@ export function setupSocketEvents() {
         };
         myColor = me.color;
         window.dispatchEvent(
-          new CustomEvent("local-player-inited", { detail: { color: me.color } }),
+          new CustomEvent("local-player-inited", {
+            detail: { color: me.color },
+          }),
         );
       }
       for (const id in data.players) {
         if (id !== myId) {
           const p = data.players[id];
           addOtherPlayer(p);
+          // Apply face texture from init data if present
+          if (p.face) {
+            const tex = storeFaceDataUrl(id, p.face);
+            applyFaceTexture(id, tex);
+          }
           allStats[id] = {
             name: p.name,
             kills: 0,
@@ -98,12 +118,21 @@ export function setupSocketEvents() {
           };
         }
       }
+      // Send our own face and colour if we have saved ones (reconnect guard)
+      const myFace = getFaceDataUrl("__local__");
+      if (myFace) socket.emit("set_face", { face: myFace });
+      const savedColor = localStorage.getItem("fps_arena_color");
+      if (savedColor) socket.emit("set_color", { color: savedColor });
     },
   );
 
   socket.on("player_joined", (p: PlayerState) => {
     if (p.id === myId) return;
     addOtherPlayer(p);
+    if (p.face) {
+      const tex = storeFaceDataUrl(p.id, p.face);
+      applyFaceTexture(p.id, tex);
+    }
     allStats[p.id] = {
       name: p.name,
       kills: 0,
@@ -149,10 +178,31 @@ export function setupSocketEvents() {
 
   socket.on(
     "player_hit",
-    (data: { id: string; hp: number; damage?: number }) => {
+    (data: {
+      id: string;
+      hp: number;
+      damage?: number;
+      from?: { x: number; y: number; z: number };
+    }) => {
       if (data.id === myId) {
         updateHudHp(data.hp);
         flashDamage();
+        triggerScreenShake(0.06);
+
+        // Direction indicator
+        if (data.from) {
+          const dx = data.from.x - camera.position.x;
+          const dz = data.from.z - camera.position.z;
+          // Camera forward and right in world XZ
+          const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(
+            camera.quaternion,
+          );
+          const dotFwd = dx * fwd.x + dz * fwd.z; // positive = attacker in front
+          const dotRight = dx * fwd.z - dz * fwd.x; // positive = attacker to right
+          // atan2(right, fwd): 0 = front (top), 90 = right, 180 = back (bottom)
+          const deg = THREE.MathUtils.radToDeg(Math.atan2(dotRight, dotFwd));
+          showDamageDirection(deg);
+        }
       } else {
         flashPlayerHit(data.id);
         showDamageNumber(data.id, data.damage ?? 25);
@@ -192,7 +242,35 @@ export function setupSocketEvents() {
         setIsDead(true);
         updateHudHp(0);
         controls.unlock();
+
+        // Show killer info on death screen
+        const killerRow = document.getElementById("death-killer-row");
+        const killerNameEl = document.getElementById("death-killer-name");
+        const killerFaceEl = document.getElementById(
+          "death-killer-face",
+        ) as HTMLImageElement | null;
+        if (killerRow && killerNameEl) {
+          killerNameEl.textContent = killerName;
+          killerRow.style.display = "flex";
+          if (killerFaceEl) {
+            const killerFaceUrl = getFaceDataUrl(data.killer);
+            if (killerFaceUrl) {
+              killerFaceEl.src = killerFaceUrl;
+              killerFaceEl.style.display = "block";
+            } else {
+              killerFaceEl.style.display = "none";
+            }
+          }
+        }
+
         deathScreen.style.display = "flex";
+        const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
+        createLocalCorpse(
+          myColor || 0xc68642,
+          { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+          cause,
+          data.explosionPos,
+        );
       } else {
         const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
         triggerRagdoll(data.victim, cause, data.explosionPos);
@@ -202,11 +280,15 @@ export function setupSocketEvents() {
 
   socket.on("player_respawned", (p: PlayerState) => {
     if (p.id === myId) {
+      cleanupLocalCorpse();
       setIsDead(false);
       camera.position.set(p.position.x, PLAYER_HEIGHT, p.position.z);
       velocity.set(0, 0, 0);
       updateHudHp(100);
       deathScreen.style.display = "none";
+      // Hide killer row for next death
+      const killerRow = document.getElementById("death-killer-row");
+      if (killerRow) killerRow.style.display = "none";
       controls.lock();
       startLocalInvincibleBlink(INVINCIBLE_TIME);
     } else if (otherPlayers[p.id]) {
@@ -297,4 +379,16 @@ export function setupSocketEvents() {
       addMessage(data.name, data.message, false);
     },
   );
+
+  socket.on("player_face_set", (data: { id: string; face: string }) => {
+    if (!data.id || !data.face) return;
+    const tex = storeFaceDataUrl(data.id, data.face);
+    applyFaceTexture(data.id, tex);
+  });
+
+  socket.on("player_color_set", (data: { id: string; color: string }) => {
+    if (!data.id || !data.color) return;
+    applyPlayerColor(data.id, data.color);
+    if (allStats[data.id]) allStats[data.id].color = data.color;
+  });
 }

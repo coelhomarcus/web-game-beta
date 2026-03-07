@@ -13,6 +13,7 @@ export interface PlayerState {
   hp: number;
   isDead: boolean;
   isInvincible: boolean;
+  face?: string;
 }
 
 export interface Stats {

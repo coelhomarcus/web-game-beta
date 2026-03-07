@@ -29,135 +29,262 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(4, 8, 16, 0.52);
+  background: rgba(200, 210, 230, 0.55);
+  backdrop-filter: blur(8px);
 }
 
-.start-bg {
-  display: none;
-}
-
-.start-card {
+.start-card,
+.settings-card {
   position: relative;
-  text-align: center;
-  padding: 36px 44px 30px;
-  background: rgba(10, 14, 22, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top: 2px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  min-width: 340px;
-  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  min-width: 420px;
+  max-width: 480px;
+  background: #f7f7fa;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.start-logo {
-  display: none;
+/* ── Kirby-style shared components ─────────────────────────────────────────── */
+
+/* Pink header bar */
+.kirby-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, #f06292, #ec407a);
+  color: #fff;
 }
 
-.start-title {
-  font-family: "Rajdhani", sans-serif;
-  font-size: 42px;
+.kirby-header-title {
+  font-family: "Nunito", sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+
+.kirby-header-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.kirby-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 16px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+}
+
+.kirby-tab:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.08);
+}
+
+.kirby-tab.active {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Body area */
+.kirby-body {
+  padding: 0;
+  flex: 1;
+}
+
+/* Section headers (teal & pink variants) */
+.kirby-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px;
+  font-family: "Nunito", sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.kirby-section-header.teal {
+  background: linear-gradient(135deg, #26c6da, #00acc1);
+}
+
+.kirby-section-header.pink {
+  background: linear-gradient(135deg, #f48fb1, #f06292);
+}
+
+.kirby-section-icon {
+  font-size: 18px;
+}
+
+.kirby-section-title {
+  font-weight: 800;
+}
+
+/* Alternating rows */
+.kirby-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 22px;
+  background: #fff;
+  font-family: "Nunito", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  transition: background 0.1s;
+}
+
+.kirby-row.alt {
+  background: #eef0f4;
+}
+
+.kirby-row:hover {
+  background: #e8ecf2;
+}
+
+.kirby-row.alt:hover {
+  background: #dfe3ea;
+}
+
+/* Control key badges */
+.ctrl-key {
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 13px;
   font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 6px;
-  line-height: 1;
-  margin-bottom: 4px;
+  color: #fff;
+  background: #7e57c2;
+  padding: 3px 12px;
+  border-radius: 6px;
+  letter-spacing: 1px;
   text-transform: uppercase;
+  min-width: 60px;
+  text-align: center;
 }
 
-.start-sub {
-  color: rgba(255, 255, 255, 0.35);
-  font-family: "Rajdhani", sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 3px;
-  margin-bottom: 32px;
-  text-transform: uppercase;
+.ctrl-action {
+  font-family: "Nunito", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #555;
 }
 
+/* Footer bar */
+.kirby-footer {
+  padding: 12px 22px;
+  background: #eef0f4;
+  text-align: center;
+  font-family: "Nunito", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border-top: 1px solid #dde0e6;
+}
+
+/* ── Start form (inside body) ──────────────────────────────────────────────── */
 .start-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 0;
+}
+
+.start-form .kirby-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
 }
 
 .start-form label {
-  color: rgba(255, 255, 255, 0.45);
-  font-family: "Rajdhani", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  text-align: left;
+  font-family: "Nunito", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: #888;
+  letter-spacing: 1px;
   text-transform: uppercase;
 }
 
 #name-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0;
-  padding: 12px 14px;
+  background: #fff;
+  border: 2px solid #dde0e6;
+  border-radius: 10px;
+  padding: 12px 16px;
   font-size: 15px;
-  font-weight: 600;
-  font-family: "Rajdhani", sans-serif;
-  letter-spacing: 1px;
-  color: #ffffff;
+  font-weight: 700;
+  font-family: "Nunito", sans-serif;
+  color: #333;
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 #name-input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
-  font-weight: 400;
+  color: #bbb;
+  font-weight: 600;
 }
 
 #name-input:focus {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: #26c6da;
+  box-shadow: 0 0 0 3px rgba(38, 198, 218, 0.18);
 }
 
 #play-btn {
-  padding: 13px 16px;
+  padding: 14px 20px;
   border: none;
-  border-radius: 0;
+  border-radius: 12px;
   cursor: pointer;
-  font-family: "Rajdhani", sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 4px;
-  color: #000000;
-  background: #ffffff;
-  transition: background 0.1s, color 0.1s, transform 0.08s;
+  font-family: "Nunito", sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #fff;
+  background: linear-gradient(135deg, #66bb6a, #43a047);
+  box-shadow:
+    0 4px 0 #2e7d32,
+    0 6px 16px rgba(67, 160, 71, 0.3);
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s,
+    filter 0.1s;
   text-transform: uppercase;
+  margin: 16px 22px;
 }
 
 #play-btn:hover {
-  background: #e0e0e0;
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 0 #2e7d32,
+    0 8px 20px rgba(67, 160, 71, 0.35);
 }
 
 #play-btn:active {
-  transform: scale(0.98);
-  background: #c8c8c8;
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 #2e7d32,
+    0 3px 8px rgba(67, 160, 71, 0.25);
 }
 
 .start-controls {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  justify-content: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  padding-top: 18px;
+  flex-direction: column;
 }
 
-.start-controls span {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.35);
-  font-family: "Rajdhani", sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 9px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+.start-logo {
+  display: none;
 }
 
 /* ── Modal base (death screen) ──────────────────────────────────────────────── */
@@ -168,64 +295,97 @@ html {
   display: none;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
+  justify-content: flex-end;
+  /* pin to bottom so corpse remains visible */
+  padding-bottom: 80px;
+  background: transparent;
+  /* no darkening — camera does the storytelling */
+  pointer-events: none;
   cursor: default;
 }
 
 .modal-card {
   text-align: center;
-  padding: 36px 52px 32px;
-  border-radius: 24px;
-  background: #ffffff;
-  box-shadow:
-    0 6px 0 #b0bec5,
-    0 10px 40px rgba(0, 0, 0, 0.3);
+  padding: 14px 36px 12px;
+  border-radius: 6px;
+  background: rgba(8, 12, 20, 0.72);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
   pointer-events: none;
-  min-width: 280px;
+  min-width: 260px;
 }
 
 .pause-card {
-  border: 4px solid #1e88e5;
-  box-shadow:
-    0 6px 0 #1565c0,
-    0 10px 40px rgba(30, 136, 229, 0.3);
+  border: 1px solid rgba(30, 136, 229, 0.4);
 }
 
 .death-card {
-  border: 4px solid #e53935;
-  box-shadow:
-    0 6px 0 #b71c1c,
-    0 10px 40px rgba(229, 57, 53, 0.3);
+  border: 1px solid rgba(229, 57, 53, 0.45);
+  box-shadow: 0 0 20px rgba(229, 57, 53, 0.18);
 }
 
 .modal-icon {
-  font-size: 52px;
+  font-size: 28px;
   line-height: 1;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .modal-title {
-  font-size: 32px;
-  font-weight: 900;
-  color: #1a1a2e;
-  margin-bottom: 6px;
-  letter-spacing: 0.5px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 2px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: Rajdhani, sans-serif;
 }
 
 .pause-card .modal-title {
-  color: #1565c0;
+  color: #64b5f6;
 }
 
 .death-card .modal-title {
-  color: #c62828;
+  color: #ef5350;
+}
+
+#death-killer-row {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 6px 0 4px;
+}
+
+#death-killer-face {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid rgba(239, 83, 80, 0.7);
+  flex-shrink: 0;
+}
+
+#death-killer-label {
+  font-family: "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+#death-killer-name {
+  color: #ff8a80;
+  font-weight: 900;
 }
 
 .modal-sub {
-  color: #78909c;
-  font-size: 14px;
-  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   margin: 0;
+  font-family: Rajdhani, sans-serif;
+  text-transform: uppercase;
 }
 
 /* ── Scoreboard — Valorant dark theme ─────────────────────────────────────── */
@@ -546,6 +706,7 @@ body.scoped #crosshair {
   0% {
     filter: brightness(1);
   }
+
   100% {
     filter: brightness(1.25);
   }
@@ -560,6 +721,7 @@ body.scoped #crosshair {
   100% {
     box-shadow: 0 0 6px rgba(170, 68, 255, 0.35);
   }
+
   50% {
     box-shadow: 0 0 14px rgba(200, 110, 255, 0.75);
   }
@@ -687,6 +849,7 @@ body.scoped #crosshair {
   from {
     stroke-dashoffset: 150.8;
   }
+
   to {
     stroke-dashoffset: 0;
   }
@@ -702,6 +865,7 @@ body.scoped #crosshair {
   from {
     opacity: 1;
   }
+
   to {
     opacity: 0.5;
   }
@@ -793,6 +957,42 @@ body.scoped #crosshair {
 
 #damage-overlay.active {
   opacity: 1;
+}
+
+/* ── Damage direction indicator ─────────────────────────────────────────────── */
+#damage-direction {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 120;
+}
+
+.dmg-arrow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 18px;
+  margin-left: -2px;
+  margin-top: -58px;
+  background: rgba(255, 20, 20, 0.85);
+  border-radius: 2px;
+  transform-origin: 2px 58px;
+  opacity: 0;
+  transition: opacity 0.08s;
+  filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.6));
+}
+
+.dmg-arrow.active {
+  opacity: 1;
+}
+
+.dmg-arrow.fade-out {
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
 /* ── Scope overlay ──────────────────────────────────────────────────────────── */
@@ -1011,7 +1211,7 @@ body.scoped #crosshair {
   transition: border-color 0.15s;
 }
 
-/* ── Settings overlay (ESC menu) ──────────────────────────────────────────── */
+/* ── Settings overlay (ESC menu) — Roblox-style dark ─────────────────────── */
 #settings-overlay {
   position: fixed;
   inset: 0;
@@ -1019,92 +1219,218 @@ body.scoped #crosshair {
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
 }
+
 #settings-overlay.active {
   display: flex;
 }
 
-.settings-card {
-  background: #1a1a2e;
-  border: 2px solid #333;
-  border-radius: 16px;
-  padding: 32px 40px;
-  min-width: 340px;
+#settings-overlay .settings-card {
+  background: rgba(30, 34, 40, 0.96);
+  border-radius: 12px;
+  min-width: 520px;
+  max-width: 620px;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
-.settings-title {
-  font-family: "Nunito", sans-serif;
-  font-size: 22px;
-  font-weight: 900;
-  color: #fff;
-  text-align: center;
-  letter-spacing: 1.5px;
-}
-
-.settings-label {
-  font-family: "Nunito", sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #b0bec5;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+/* ── Tab bar ─── */
+.rbx-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: stretch;
+  background: rgba(20, 24, 30, 0.95);
+  padding: 0 8px;
+  gap: 0;
 }
 
-.settings-row {
+.rbx-tab {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.settings-row input[type="range"] {
-  flex: 1;
-  accent-color: #00b4d8;
-  height: 6px;
-  cursor: pointer;
-}
-
-.settings-val {
-  font-family: "Rajdhani", monospace;
-  font-size: 16px;
-  font-weight: 700;
-  color: #00e5ff;
-  min-width: 40px;
-  text-align: right;
-}
-
-.settings-btn {
-  margin-top: 8px;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 14px 22px;
   cursor: pointer;
   font-family: "Nunito", sans-serif;
-  font-size: 15px;
-  font-weight: 900;
-  letter-spacing: 1.5px;
-  color: #fff;
-  background: #00c853;
-  border-bottom: 3px solid #00952e;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  border-bottom: 3px solid transparent;
   transition:
-    transform 0.1s,
-    filter 0.1s;
+    color 0.15s,
+    border-color 0.15s;
 }
-.settings-btn:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
+
+.rbx-tab:hover {
+  color: rgba(255, 255, 255, 0.75);
 }
-.settings-btn:active {
-  transform: translateY(1px);
-  border-bottom-width: 1px;
+
+.rbx-tab.active {
+  color: #fff;
+  border-bottom-color: #00e5a0;
+}
+
+.rbx-tab-icon {
+  font-size: 16px;
+}
+
+.rbx-tab-label {
+  font-weight: 800;
+}
+
+/* ── Body rows ─── */
+.rbx-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 400px;
+}
+
+.rbx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: rgba(40, 44, 52, 0.85);
+  transition: background 0.12s;
+}
+
+.rbx-row.alt {
+  background: rgba(32, 36, 42, 0.85);
+}
+
+.rbx-row:hover {
+  background: rgba(50, 54, 62, 0.9);
+}
+
+.rbx-row-label {
+  font-family: "Nunito", sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: #e0e0e0;
+  white-space: nowrap;
+  min-width: 180px;
+}
+
+/* ── Slider group (⊖ [bars] ⊕ value) ─── */
+.rbx-slider-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.rbx-step-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: 4px;
+  transition:
+    color 0.12s,
+    background 0.12s;
+}
+
+.rbx-step-btn:hover {
+  color: #00e5a0;
+  background: rgba(0, 229, 160, 0.1);
+}
+
+/* Segmented bar track */
+.rbx-bar-track {
+  display: flex;
+  gap: 2px;
+  cursor: pointer;
+  padding: 4px 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.rbx-seg {
+  flex: 1;
+  height: 16px;
+  border-radius: 3px;
+  background: rgba(60, 65, 75, 0.9);
+  transition: background 0.12s;
+}
+
+.rbx-seg.on {
+  background: linear-gradient(180deg, #00e5a0, #00c98a);
+  box-shadow: 0 0 6px rgba(0, 229, 160, 0.3);
+}
+
+/* Numeric readout */
+.rbx-val {
+  font-family: "Rajdhani", "Nunito", monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(50, 55, 65, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 4px 10px;
+  min-width: 44px;
+  text-align: center;
+}
+
+/* ── Bottom action bar ─── */
+.rbx-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 14px 24px;
+  background: rgba(20, 24, 30, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rbx-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "Nunito", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.rbx-action-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.rbx-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-family: "Rajdhani", "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border: 2px solid;
+}
+
+.rbx-key.teal {
+  color: #00e5a0;
+  border-color: #00e5a0;
 }
 
 #chat-input::placeholder {
@@ -1250,4 +1576,261 @@ body.scoped #crosshair {
   letter-spacing: 0.5px;
   pointer-events: none;
   white-space: nowrap;
+}
+
+/* ── Start screen: updated card & floating preview ────────────────────────── */
+.start-card {
+  min-width: 380px;
+  max-width: 420px;
+}
+
+/* Floating 3D character preview — right half of viewport */
+#character-preview-float {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 45vw;
+  height: 100vh;
+  z-index: 301;
+  pointer-events: none; /* canvas inside gets pointer-events back */
+  display: none; /* shown only while start screen is up */
+}
+
+#character-preview-float canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: auto;
+}
+
+/* ── Face upload row ───────────────────────────────────────────────────────── */
+.face-upload-row {
+  align-items: center;
+  gap: 10px;
+}
+
+.face-upload-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.face-preview-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid #26c6da;
+  flex-shrink: 0;
+}
+
+#face-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 2px dashed #b0bec5;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  font-family: "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #607d8b;
+  transition:
+    border-color 0.2s,
+    color 0.2s,
+    background 0.2s;
+  white-space: nowrap;
+}
+
+#face-upload-btn:hover {
+  border-color: #26c6da;
+  color: #00acc1;
+  background: rgba(38, 198, 218, 0.06);
+}
+
+#face-remove-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: #ef9a9a;
+  color: #b71c1c;
+  font-weight: 900;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+#face-remove-btn:hover {
+  background: #ef5350;
+  color: #fff;
+}
+
+/* ── Color picker row ──────────────────────────────────────────────────────── */
+.color-picker-row {
+  align-items: center;
+  gap: 10px;
+}
+
+.color-picker-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#player-color-picker {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 42px;
+  height: 42px;
+  padding: 3px;
+  border: 2px solid #b0bec5;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+}
+#player-color-picker:hover {
+  border-color: #26c6da;
+}
+#player-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 6px;
+}
+#player-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 6px;
+}
+
+#player-color-label {
+  font-family: "Nunito", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #90a4ae;
+  letter-spacing: 0.05em;
+}
+
+/* ── Face crop modal ────────────────────────────────────────────────────────── */
+#face-crop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+#face-crop-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  background: #1e293b;
+  border-radius: 18px;
+  padding: 22px 24px 20px;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  width: 340px;
+}
+
+.face-crop-title {
+  font-family: "Nunito", sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  color: #e2e8f0;
+  align-self: flex-start;
+}
+
+.face-crop-hint {
+  font-family: "Nunito", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  align-self: flex-start;
+  margin-top: -8px;
+  letter-spacing: 0.3px;
+}
+
+#face-crop-canvas {
+  border-radius: 10px;
+  cursor: grab;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  touch-action: none;
+}
+
+#face-crop-canvas:active {
+  cursor: grabbing;
+}
+
+.face-crop-zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.face-crop-zoom-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+#face-crop-zoom {
+  flex: 1;
+  accent-color: #26c6da;
+  height: 4px;
+  cursor: pointer;
+}
+
+.face-crop-buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.face-crop-buttons button {
+  flex: 1;
+  padding: 11px 0;
+  border: none;
+  border-radius: 10px;
+  font-family: "Nunito", sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    filter 0.15s,
+    transform 0.1s;
+}
+
+.face-crop-buttons button:active {
+  transform: scale(0.97);
+}
+
+#face-crop-cancel {
+  background: #334155;
+  color: #94a3b8;
+}
+
+#face-crop-cancel:hover {
+  filter: brightness(1.15);
+}
+
+#face-crop-confirm {
+  background: linear-gradient(135deg, #26c6da, #00acc1);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(0, 172, 193, 0.4);
+}
+
+#face-crop-confirm:hover {
+  filter: brightness(1.08);
 }

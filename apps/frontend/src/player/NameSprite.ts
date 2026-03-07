@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { playerCurrentNames } from "./PlayerModel";
+import { sanitizePlayerName } from "../utils/playerName";
 
 export function createNameSprite(name: string): THREE.Sprite {
   const w = 512,
@@ -14,9 +15,10 @@ export function createNameSprite(name: string): THREE.Sprite {
   ctx.strokeStyle = "rgba(0,0,0,0.9)";
   ctx.lineWidth = 10;
   ctx.lineJoin = "round";
-  ctx.strokeText(name.slice(0, 16), w / 2, h / 2);
+  const cleanName = sanitizePlayerName(name);
+  ctx.strokeText(cleanName, w / 2, h / 2);
   ctx.fillStyle = "#ffffff";
-  ctx.fillText(name.slice(0, 16), w / 2, h / 2);
+  ctx.fillText(cleanName, w / 2, h / 2);
   const tex = new THREE.CanvasTexture(cv);
   const mat = new THREE.SpriteMaterial({
     map: tex,

@@ -1,6 +1,7 @@
 import { socket } from "../network/socket";
 import { getPlayerName } from "../network/events";
 import { controls } from "../systems/input";
+import { DEFAULT_PLAYER_NAME } from "../utils/playerName";
 
 // ── DOM ──────────────────────────────────────────────────────────────────────
 const chatContainer = document.createElement("div");
@@ -54,7 +55,7 @@ function sendMessage() {
     closeChat();
     return;
   }
-  const name = getPlayerName() || "Anonimo";
+  const name = getPlayerName() || DEFAULT_PLAYER_NAME;
   socket.emit("chat_message", { message: text });
   addMessage(name, text, true);
   closeChat();

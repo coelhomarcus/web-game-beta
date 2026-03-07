@@ -1,5 +1,13 @@
 import * as THREE from "three";
-import { PLAYER_HEIGHT, PLAYER_RADIUS, GRAVITY, JUMP_FORCE, ACCELERATION, FRICTION } from "../config";
+import {
+  PLAYER_HEIGHT,
+  PLAYER_RADIUS,
+  GRAVITY,
+  JUMP_FORCE,
+  ACCELERATION,
+  FRICTION,
+  MAP_HALF_SIZE,
+} from "../config";
 import { mapBlocks } from "../scene/map";
 import { camera } from "../scene/setup";
 
@@ -28,6 +36,8 @@ export let moveLeft = false;
 export let moveRight = false;
 export let wantsJump = false;
 export let isOnGround = false;
+let _jumpsUsed = 0;
+const MAX_JUMPS = 2;
 
 export function setMoveForward(v: boolean) { moveForward = v; }
 export function setMoveBackward(v: boolean) { moveBackward = v; }
@@ -35,6 +45,7 @@ export function setMoveLeft(v: boolean) { moveLeft = v; }
 export function setMoveRight(v: boolean) { moveRight = v; }
 export function setWantsJump(v: boolean) { wantsJump = v; }
 export function setIsOnGround(v: boolean) { isOnGround = v; }
+export function canJump(): boolean { return _jumpsUsed < MAX_JUMPS; }
 
 function resolveBoxCollision(pos: THREE.Vector3, box: THREE.Mesh) {
   const geo = box.geometry as THREE.BoxGeometry;
@@ -61,6 +72,7 @@ function resolveBoxCollision(pos: THREE.Vector3, box: THREE.Mesh) {
       if (velocity.y < 0) {
         velocity.y = 0;
         isOnGround = true;
+        _jumpsUsed = 0;
       }
     } else {
       pos.y = bBot - 0.01;
@@ -82,10 +94,11 @@ export function updatePhysics(
     velocity.z -= moveDir.z * ACCELERATION * delta;
   if (moveLeft || moveRight) velocity.x -= moveDir.x * ACCELERATION * delta;
 
-  if (wantsJump && isOnGround) {
+  if (wantsJump && _jumpsUsed < MAX_JUMPS) {
     velocity.y = JUMP_FORCE;
     isOnGround = false;
     wantsJump = false;
+    _jumpsUsed++;
   }
   isOnGround = false;
   velocity.y += GRAVITY * delta;
@@ -94,6 +107,7 @@ export function updatePhysics(
     camera.position.y = PLAYER_HEIGHT;
     velocity.y = 0;
     isOnGround = true;
+    _jumpsUsed = 0;
   }
 
   controls.moveRight(-velocity.x * delta);
@@ -109,6 +123,6 @@ export function updatePhysics(
   }
 
   for (const box of mapBlocks) resolveBoxCollision(camera.position, box);
-  camera.position.x = Math.max(-49, Math.min(49, camera.position.x));
-  camera.position.z = Math.max(-49, Math.min(49, camera.position.z));
+  camera.position.x = Math.max(-MAP_HALF_SIZE, Math.min(MAP_HALF_SIZE, camera.position.x));
+  camera.position.z = Math.max(-MAP_HALF_SIZE, Math.min(MAP_HALF_SIZE, camera.position.z));
 }

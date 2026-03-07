@@ -383,3 +383,80 @@ export function updateRagdolls(delta: number) {
     // Body stays on the ground until respawn – no auto-hide / no fade
   }
 }
+
+// ─── Floating Damage Numbers ──────────────────────────────────────────────────
+
+interface FloatingNumber {
+  sprite: THREE.Sprite;
+  velY: number;
+  elapsed: number;
+  lifetime: number;
+}
+
+const activeFloats: FloatingNumber[] = [];
+
+function makeDamageSprite(damage: number): THREE.Sprite {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 64;
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, 128, 64);
+  ctx.font = "bold 44px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  // Dark outline for readability
+  ctx.strokeStyle = "rgba(0,0,0,0.9)";
+  ctx.lineWidth = 6;
+  ctx.strokeText(`-${damage}`, 64, 34);
+  // Fill: red for big damage, orange for mid, yellow for small
+  ctx.fillStyle = damage >= 100 ? "#ff3300" : damage >= 50 ? "#ff7700" : "#ffdd00";
+  ctx.fillText(`-${damage}`, 64, 34);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(0.9, 0.45, 1);
+  return sprite;
+}
+
+export function showDamageNumber(id: string, damage: number): void {
+  const grp = otherPlayers[id];
+  if (!grp || !grp.visible) return;
+
+  const sprite = makeDamageSprite(damage);
+  // Slight random horizontal spread so stacked hits don't overlap
+  sprite.position.set(
+    grp.position.x + (Math.random() - 0.5) * 0.5,
+    grp.position.y + 2.3,
+    grp.position.z + (Math.random() - 0.5) * 0.3,
+  );
+  scene.add(sprite);
+
+  activeFloats.push({ sprite, velY: 2.0 + Math.random() * 0.6, elapsed: 0, lifetime: 1.1 });
+}
+
+export function updateFloatingDamageNumbers(delta: number): void {
+  for (let i = activeFloats.length - 1; i >= 0; i--) {
+    const f = activeFloats[i];
+    f.elapsed += delta;
+
+    // Float upward, decelerate
+    f.sprite.position.y += f.velY * delta;
+    f.velY = Math.max(0, f.velY - 3 * delta);
+
+    // Fade out in last 50% of lifetime
+    const fadeStart = f.lifetime * 0.5;
+    if (f.elapsed >= fadeStart) {
+      const t = (f.elapsed - fadeStart) / (f.lifetime - fadeStart);
+      (f.sprite.material as THREE.SpriteMaterial).opacity = Math.max(0, 1 - t);
+    }
+
+    if (f.elapsed >= f.lifetime) {
+      scene.remove(f.sprite);
+      const mat = f.sprite.material as THREE.SpriteMaterial;
+      mat.map?.dispose();
+      mat.dispose();
+      activeFloats.splice(i, 1);
+    }
+  }
+}

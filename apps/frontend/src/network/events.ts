@@ -6,6 +6,7 @@ import { camera } from "../scene/setup";
 import {
   otherPlayers, addOtherPlayer, removeOtherPlayer, flashPlayerHit,
   startInvincibleBlink, triggerRagdoll, cleanupRagdoll, isRagdollActive,
+  showDamageNumber,
 } from "../player/PlayerModel";
 import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
@@ -94,11 +95,14 @@ export function setupSocketEvents() {
     }
   });
 
-  socket.on("player_hit", (data: { id: string; hp: number }) => {
+  socket.on("player_hit", (data: { id: string; hp: number; damage?: number }) => {
     if (data.id === myId) {
       updateHudHp(data.hp);
       flashDamage();
-    } else flashPlayerHit(data.id);
+    } else {
+      flashPlayerHit(data.id);
+      showDamageNumber(data.id, data.damage ?? 25);
+    }
   });
 
   socket.on("player_killed", (data: {

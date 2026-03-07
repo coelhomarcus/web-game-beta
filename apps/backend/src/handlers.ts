@@ -137,7 +137,7 @@ export function registerHandlers(io: Server, socket: Socket) {
             if (target.hp <= 0) {
                 killPlayer(io, id, socket.id, 'grenade', ep);
             } else {
-                io.emit('player_hit', { id, hp: target.hp });
+                io.emit('player_hit', { id, hp: target.hp, damage: dmg });
             }
         }
     });
@@ -145,17 +145,18 @@ export function registerHandlers(io: Server, socket: Socket) {
     socket.on('hit_player', (data: { targetId: string; damage?: number; weaponId?: string }) => {
         const target = players[data.targetId];
         if (target && !target.isDead && !target.isInvincible) {
-            target.hp -= BULLET_DAMAGE;
+            const dmg = Math.min(data.damage ?? BULLET_DAMAGE, 300); // clamp (headshots can be 2x)
+            target.hp -= dmg;
             if (data.weaponId) lastWeapon[socket.id] = data.weaponId;
 
             // Track damage for assist
             if (!damageLog[data.targetId]) damageLog[data.targetId] = {};
-            damageLog[data.targetId][socket.id] = (damageLog[data.targetId][socket.id] ?? 0) + BULLET_DAMAGE;
+            damageLog[data.targetId][socket.id] = (damageLog[data.targetId][socket.id] ?? 0) + dmg;
 
             if (target.hp <= 0) {
                 killPlayer(io, target.id, socket.id, 'bullet');
             } else {
-                io.emit('player_hit', { id: target.id, hp: target.hp });
+                io.emit('player_hit', { id: target.id, hp: target.hp, damage: dmg });
             }
         }
     });

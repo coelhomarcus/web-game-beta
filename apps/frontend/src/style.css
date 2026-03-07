@@ -643,6 +643,17 @@ body.scoped #crosshair {
   opacity: 1;
 }
 
+#hit-marker.headshot {
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 0 6px #ffe000);
+}
+
+#hit-marker.headshot::before,
+#hit-marker.headshot::after {
+  background: #ffe000;
+}
+
 #hit-marker::before,
 #hit-marker::after {
   content: "";

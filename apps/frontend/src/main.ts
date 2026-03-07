@@ -73,7 +73,7 @@ window.addEventListener("weapon-switched", () => {
   fpWeapon = isAwp ? makeAwpModel(true) : makeWeapon(true);
   fpArms = makeFirstPersonArms(
     isAwp ? "awp" : "rifle",
-    getMyColor() || undefined,
+    localStorage.getItem("fps_arena_color") || getMyColor() || undefined,
   );
   camera.add(fpWeapon);
   camera.add(fpArms);

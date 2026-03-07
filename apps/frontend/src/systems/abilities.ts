@@ -11,7 +11,6 @@ const ABILITY_COOLDOWN = 15.0;
 let _isCharging = false;
 let _chargeElapsed = 0;
 let _cooldownRemaining = 0;
-let _lastCooldownSeconds = -1;
 
 const _tmpForward = new THREE.Vector3();
 
@@ -39,7 +38,6 @@ function _fireShout(): void {
   });
 
   _cooldownRemaining = ABILITY_COOLDOWN;
-  _lastCooldownSeconds = -1;
   _updateCooldownHud();
 
   playShoutSound();
@@ -320,24 +318,18 @@ function _updateChargeProgress(pct: number): void {
 }
 
 function _updateCooldownHud(): void {
-  if (!_keyEl) _keyEl = document.querySelector("#" + SLOT_ID + " .hud-ability-key");
   if (!_slotEl) _slotEl = document.getElementById(SLOT_ID);
-
   const slot = _slotEl;
-  const key = _keyEl;
-  if (!slot || !key) return;
-
-  const sec = Math.ceil(_cooldownRemaining);
-  if (sec === _lastCooldownSeconds) return;
-  _lastCooldownSeconds = sec;
+  if (!slot) return;
 
   if (_cooldownRemaining > 0) {
-    key.textContent = String(sec);
-    slot.classList.remove("ready");
-    slot.classList.add("empty");
+    const pct = 1 - _cooldownRemaining / ABILITY_COOLDOWN;
+    slot.style.setProperty("--cooldown-pct", String(pct));
+    slot.classList.remove("ready", "empty");
+    slot.classList.add("on-cooldown");
   } else {
-    key.textContent = "Z";
-    slot.classList.remove("empty");
+    slot.style.removeProperty("--cooldown-pct");
+    slot.classList.remove("on-cooldown", "empty");
     slot.classList.add("ready");
   }
 }

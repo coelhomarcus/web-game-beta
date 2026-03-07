@@ -120,8 +120,8 @@ function buildPlayerBody(color: string | number): {
   grp.add(rightArm);
 
   // Legs
-  grp.add(makeLimb("leftLeg", 0.2, 0.6, 0.2, mat, -0.12, -0.4, 0, -0.3));
-  grp.add(makeLimb("rightLeg", 0.2, 0.6, 0.2, mat, 0.12, -0.4, 0, -0.3));
+  grp.add(makeLimb("leftLeg", 0.2, 0.6, 0.2, mat, -0.12, -0.35, 0, -0.3));
+  grp.add(makeLimb("rightLeg", 0.2, 0.6, 0.2, mat, 0.12, -0.35, 0, -0.3));
 
   return { grp, mat };
 }

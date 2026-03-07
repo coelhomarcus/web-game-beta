@@ -517,7 +517,8 @@ html {
   transition: opacity 0.1s;
 }
 
-body.scoped #crosshair {
+body.scoped #crosshair,
+body.awp #crosshair {
   opacity: 0;
 }
 
@@ -573,24 +574,6 @@ body.scoped #crosshair {
   display: flex;
   flex-direction: column;
   gap: 5px;
-}
-
-#hud-hp-bar-bg {
-  width: 150px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-#hud-hp-bar {
-  height: 100%;
-  width: 100%;
-  background: #4ade80;
-  border-radius: 2px;
-  transition:
-    width 0.25s,
-    background 0.3s;
 }
 
 #hud-hp-bottom {
@@ -654,13 +637,18 @@ body.scoped #crosshair {
   text-transform: uppercase;
 }
 
-#hud-grenade-cd {
-  font-family: "Rajdhani", "Nunito", sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fbbf24;
-  min-width: 22px;
-  text-align: center;
+#hud-grenade.on-cooldown {
+  opacity: 1;
+  background-image: conic-gradient(
+    rgba(251, 191, 36, 0.85) calc(var(--grenade-cd-pct, 0) * 360deg),
+    rgba(255, 255, 255, 0.08) 0deg
+  );
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+}
+
+#hud-grenade:not(.on-cooldown) {
+  opacity: 1;
 }
 
 /* ── Ability slot (next to grenade) ─────────────────────────────────────────── */
@@ -710,6 +698,16 @@ body.scoped #crosshair {
   100% {
     filter: brightness(1.25);
   }
+}
+
+.hud-ability-slot.on-cooldown {
+  opacity: 1;
+  background-image: conic-gradient(
+    rgba(170, 68, 255, 0.75) calc(var(--cooldown-pct, 0) * 360deg),
+    rgba(255, 255, 255, 0.08) 0deg
+  );
+  border-color: rgba(170, 68, 255, 0.5);
+  box-shadow: 0 0 8px rgba(170, 68, 255, 0.25);
 }
 
 .hud-ability-slot.empty {
@@ -1500,8 +1498,8 @@ body.scoped #crosshair {
 
 #minimap canvas {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 160px;
+  height: 160px;
 }
 
 /* ── Weapon selector HUD — Valorant style ─────────────────────────────────── */

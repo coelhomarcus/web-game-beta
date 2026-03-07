@@ -8,11 +8,9 @@ hud.innerHTML = `
       <div id="hud-grenade">
         <span id="hud-grenade-icon">💣</span>
         <span id="hud-grenade-label">Q</span>
-        <div id="hud-grenade-cd"></div>
       </div>
     </div>
     <div id="hud-hp">
-      <div id="hud-hp-bar-bg"><div id="hud-hp-bar"></div></div>
       <div id="hud-hp-bottom">
         <span id="hud-hp-value">100</span>
         <span id="hud-hp-label">HP</span>
@@ -28,15 +26,17 @@ hud.innerHTML = `
       <span id="hud-weapon-name">FAL</span>
     </div>
     <div id="hud-ammo">
-      <span id="hud-ammo-current">20</span><span id="hud-ammo-sep"> / </span><span id="hud-ammo-reserve">∞</span>
+      <span id="hud-ammo-current">30</span><span id="hud-ammo-sep"> / </span><span id="hud-ammo-reserve">90</span>
     </div>
   </div>`;
 document.body.appendChild(hud);
 
-const hudHpBar = document.getElementById("hud-hp-bar") as HTMLElement;
 const hudHpValue = document.getElementById("hud-hp-value") as HTMLElement;
 const hudAmmoCurrent = document.getElementById(
   "hud-ammo-current",
+) as HTMLElement;
+const hudAmmoReserve = document.getElementById(
+  "hud-ammo-reserve",
 ) as HTMLElement;
 const hudAmmoEl = document.getElementById("hud-ammo") as HTMLElement;
 const hudWeaponName = document.getElementById("hud-weapon-name") as HTMLElement;
@@ -78,22 +78,25 @@ const wkey2 = document.getElementById("wkey-2") as HTMLElement;
 
 export function updateHudHp(hp: number) {
   const pct = Math.max(0, hp);
-  hudHpBar.style.width = `${pct}%`;
   hudHpValue.textContent = String(pct);
   if (pct > 70) {
-    hudHpBar.style.background = "#4ade80";
     hudHpValue.style.color = "#ffffff";
   } else if (pct > 30) {
-    hudHpBar.style.background = "#fbbf24";
     hudHpValue.style.color = "#fbbf24";
   } else {
-    hudHpBar.style.background = "#ff4655";
     hudHpValue.style.color = "#ff4655";
   }
 }
 
-export function updateHudAmmo(current: number, reloading: boolean) {
+export function updateHudAmmo(
+  current: number,
+  reloading: boolean,
+  reserve?: number | null,
+) {
   hudAmmoCurrent.textContent = String(current);
+  if (reserve !== undefined) {
+    hudAmmoReserve.textContent = reserve === null ? "∞" : String(reserve);
+  }
   if (reloading) {
     hudAmmoEl.classList.add("reloading");
   } else {

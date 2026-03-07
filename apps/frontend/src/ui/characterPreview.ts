@@ -280,8 +280,8 @@ function buildPreviewCharacter(color: string | number): {
   grp.add(makeLimb(mat, 0.27, 0.2, 0, 0.18, 0.55, 0.18, -0.27));
 
   // Legs
-  grp.add(makeLimb(mat, -0.12, -0.4, 0, 0.2, 0.6, 0.2, -0.3));
-  grp.add(makeLimb(mat, 0.12, -0.4, 0, 0.2, 0.6, 0.2, -0.3));
+  grp.add(makeLimb(mat, -0.12, -0.35, 0, 0.2, 0.6, 0.2, -0.3));
+  grp.add(makeLimb(mat, 0.12, -0.35, 0, 0.2, 0.6, 0.2, -0.3));
 
   return { group: grp, facePlane, faceVisor, bodyMat: mat };
 }

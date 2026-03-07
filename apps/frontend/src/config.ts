@@ -14,7 +14,7 @@ export const BULLET_MAX_LIFETIME = 2.0;
 export const BULLET_RADIUS = 0.06;
 
 export const GRENADE_FUSE = 2.0;
-export const GRENADE_COOLDOWN = 12.0;
+export const GRENADE_COOLDOWN = 6.0;
 export const GRENADE_GRAVITY = -18;
 export const GRENADE_THROW_SPD = 14;
 export const GRENADE_THROW_UP = 6;

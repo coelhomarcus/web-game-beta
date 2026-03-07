@@ -1,5 +1,11 @@
 import * as THREE from "three";
-import { GRENADE_FUSE, GRENADE_COOLDOWN, GRENADE_GRAVITY, GRENADE_THROW_SPD, GRENADE_THROW_UP } from "../config";
+import {
+  GRENADE_FUSE,
+  GRENADE_COOLDOWN,
+  GRENADE_GRAVITY,
+  GRENADE_THROW_SPD,
+  GRENADE_THROW_UP,
+} from "../config";
 import { scene, camera } from "../scene/setup";
 import { mapBlocks } from "../scene/map";
 import { socket } from "../network/socket";
@@ -30,18 +36,20 @@ export function cleanupRemoteGrenades() {
 }
 
 const grenadeGeo = new THREE.SphereGeometry(0.12, 8, 8);
-const grenadeMat = new THREE.MeshStandardMaterial({ color: 0x2d5a1b, roughness: 0.6 });
+const grenadeMat = new THREE.MeshStandardMaterial({
+  color: 0x2d5a1b,
+  roughness: 0.6,
+});
 
 let hudGrenadeEl: HTMLElement | null = null;
-let hudGrenadeCd: HTMLElement | null = null;
 
 function getHudElements() {
   if (!hudGrenadeEl) hudGrenadeEl = document.getElementById("hud-grenade");
-  if (!hudGrenadeCd) hudGrenadeCd = document.getElementById("hud-grenade-cd");
 }
 
 export function throwGrenade(controls: { isLocked: boolean }, isDead: boolean) {
-  if (!controls.isLocked || isDead || activeGrenade || grenadeCooldown > 0) return;
+  if (!controls.isLocked || isDead || activeGrenade || grenadeCooldown > 0)
+    return;
 
   const mesh = new THREE.Mesh(grenadeGeo, grenadeMat);
   const origin = new THREE.Vector3();
@@ -87,7 +95,11 @@ export function explodeGrenade(pos: THREE.Vector3) {
   }
 
   const flashGeo = new THREE.SphereGeometry(0.5, 8, 8);
-  const flashMat = new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.9 });
+  const flashMat = new THREE.MeshBasicMaterial({
+    color: 0xff8800,
+    transparent: true,
+    opacity: 0.9,
+  });
   const flash = new THREE.Mesh(flashGeo, flashMat);
   flash.position.copy(pos);
   scene.add(flash);
@@ -113,7 +125,9 @@ export function explodeGrenade(pos: THREE.Vector3) {
       (Math.random() - 0.5) * 2,
       Math.random(),
       (Math.random() - 0.5) * 2,
-    ).normalize().multiplyScalar(4 + Math.random() * 4);
+    )
+      .normalize()
+      .multiplyScalar(4 + Math.random() * 4);
     scene.add(d);
     let dStart: number | null = null;
     const DEBRIS_DUR = 0.8;
@@ -136,12 +150,14 @@ export function updateGrenade(delta: number) {
   }
   getHudElements();
   if (hudGrenadeEl) {
-    hudGrenadeEl.style.opacity = grenadeCooldown > 0 ? "0.45" : "1";
-  }
-  if (hudGrenadeCd) {
-    hudGrenadeCd.textContent = grenadeCooldown > 0
-      ? Math.ceil(grenadeCooldown) + "s"
-      : "";
+    const pct =
+      grenadeCooldown > 0 ? 1 - grenadeCooldown / GRENADE_COOLDOWN : 1;
+    hudGrenadeEl.style.setProperty("--grenade-cd-pct", String(pct));
+    if (grenadeCooldown > 0) {
+      hudGrenadeEl.classList.add("on-cooldown");
+    } else {
+      hudGrenadeEl.classList.remove("on-cooldown");
+    }
   }
 
   if (activeGrenade) {

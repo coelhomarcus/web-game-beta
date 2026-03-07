@@ -15,6 +15,7 @@ import {
 } from "../ui/hud";
 import { showScope, hideScope } from "../ui/overlays";
 import { controls } from "./input";
+import { addRecoil, updateRecoil } from "./cameraLook";
 import { getNormalSensitivity, getScopeSensitivity } from "../ui/settings";
 import { triggerScreenShake, triggerWeaponRecoil } from "./headBob";
 
@@ -37,10 +38,10 @@ export const WEAPONS: Record<string, WeaponDef> = {
     id: "ar",
     name: "FAL",
     label: "1",
-    magSize: 20,
+    magSize: 30,
     reloadTime: 2.0,
-    fireRate: 0,
-    damage: 25,
+    fireRate: 0.09,
+    damage: 15,
     bulletColor: 0xffe000,
     bulletSpeed: BULLET_SPEED,
     bulletMaxLife: BULLET_MAX_LIFETIME,
@@ -49,7 +50,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     id: "awp",
     name: "AWP",
     label: "2",
-    magSize: 5,
+    magSize: 1,
     reloadTime: 3.2,
     fireRate: 1.1, // bolt-action delay
     damage: 60,
@@ -68,8 +69,23 @@ let isReloading = false;
 let reloadTimer = 0;
 let fireCooldown = 0;
 
+// AR reserve pool — 30 in mag + 90 reserve
+const AR_RESERVE_START = 90;
+let arReserve = AR_RESERVE_START;
+
+// Auto-fire state (AR only)
+let _mouseHeld = false;
+
+// AWP reserve pool — 1 in chamber + 5 in reserve = 6 total
+const AWP_RESERVE_START = 5;
+let awpReserve = AWP_RESERVE_START;
+
 // Scope state (AWP only)
 let isScoped = false;
+
+export function setMouseHeld(held: boolean): void {
+  _mouseHeld = held;
+}
 
 export function getCurrentWeapon(): WeaponDef {
   return WEAPONS[currentWeaponId];
@@ -95,7 +111,15 @@ export function switchWeapon(id: "ar" | "awp") {
   isReloading = false;
   reloadTimer = 0;
   fireCooldown = 0;
-  updateHudAmmo(ammo, false);
+  _mouseHeld = false;
+  if (id === "awp") {
+    awpReserve = AWP_RESERVE_START;
+    updateHudAmmo(ammo, false, awpReserve);
+    document.body.classList.add("awp");
+  } else {
+    updateHudAmmo(ammo, false, arReserve);
+    document.body.classList.remove("awp");
+  }
   updateHudWeapon(WEAPONS[id]);
   window.dispatchEvent(new CustomEvent("weapon-switched"));
 }
@@ -146,6 +170,9 @@ export function exitScope() {
 export function startReload() {
   const w = getCurrentWeapon();
   if (isReloading || ammo === w.magSize) return;
+  // Only reload if there are reserve bullets
+  if (currentWeaponId === "awp" && awpReserve <= 0) return;
+  if (currentWeaponId === "ar" && arReserve <= 0) return;
   isReloading = true;
   reloadTimer = w.reloadTime;
   if (isScoped) exitScope();
@@ -156,13 +183,37 @@ export function startReload() {
 
 export function updateAmmo(delta: number) {
   if (fireCooldown > 0) fireCooldown = Math.max(0, fireCooldown - delta);
+
+  // Auto-fire for AR while mouse is held
+  if (
+    _mouseHeld &&
+    currentWeaponId === "ar" &&
+    !isReloading &&
+    fireCooldown <= 0
+  ) {
+    const controls = { isLocked: document.pointerLockElement !== null };
+    handleShoot(false, controls);
+  }
+
+  // Camera recoil recovery
+  updateRecoil(delta, _mouseHeld && currentWeaponId === "ar" && !isReloading);
+
   if (!isReloading) return;
   reloadTimer -= delta;
   if (reloadTimer <= 0) {
     isReloading = false;
-    ammo = getCurrentWeapon().magSize;
     stopReloadRing();
-    updateHudAmmo(ammo, false);
+    if (currentWeaponId === "awp") {
+      ammo = WEAPONS.awp.magSize;
+      awpReserve = Math.max(0, awpReserve - 1);
+      updateHudAmmo(ammo, false, awpReserve);
+    } else {
+      const need = WEAPONS.ar.magSize - ammo;
+      const take = Math.min(need, arReserve);
+      ammo += take;
+      arReserve -= take;
+      updateHudAmmo(ammo, false, arReserve);
+    }
   }
 }
 
@@ -253,8 +304,15 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
   // Consume ammo & set cooldown
   ammo--;
   fireCooldown = w.fireRate;
-  updateHudAmmo(ammo, false);
-  if (ammo === 0) startReload();
+  if (currentWeaponId === "awp") {
+    updateHudAmmo(ammo, false, awpReserve);
+    if (ammo === 0 && awpReserve > 0) startReload();
+  } else {
+    updateHudAmmo(ammo, false, arReserve);
+    if (ammo === 0) startReload();
+    // CS:GO-style recoil kick
+    addRecoil();
+  }
 
   // AWP: exit scope on shoot
   if (currentWeaponId === "awp") {
@@ -314,7 +372,11 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
     w.bulletMaxLife,
   );
   socket.emit("shoot", {
-    origin: { x: _tmpShootOrigin.x, y: _tmpShootOrigin.y, z: _tmpShootOrigin.z },
+    origin: {
+      x: _tmpShootOrigin.x,
+      y: _tmpShootOrigin.y,
+      z: _tmpShootOrigin.z,
+    },
     direction: { x: _tmpShootDir.x, y: _tmpShootDir.y, z: _tmpShootDir.z },
     color: w.bulletColor,
   });

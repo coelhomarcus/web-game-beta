@@ -103,6 +103,7 @@ export function setupSocketEvents() {
 
   socket.on("player_killed", (data: {
     victim: string; killer: string; assist?: string;
+    weapon?: string;
     cause?: string; explosionPos?: { x: number; y: number; z: number };
   }) => {
     if (allStats[data.killer]) allStats[data.killer].kills++;
@@ -123,10 +124,6 @@ export function setupSocketEvents() {
     } else {
       const cause = (data.cause as "bullet" | "grenade") ?? "bullet";
       triggerRagdoll(data.victim, cause, data.explosionPos);
-      if (data.killer === myId) {
-        const kills = allStats[myId]?.kills ?? 0;
-        hudKillsVal.textContent = String(kills);
-      }
     }
   });
 

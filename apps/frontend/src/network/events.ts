@@ -4,6 +4,9 @@ import type { PlayerState } from "../types";
 import { PLAYER_HEIGHT, INVINCIBLE_TIME } from "../config";
 import { camera } from "../scene/setup";
 import {
+  otherPlayers, addOtherPlayer, removeOtherPlayer, flashPlayerHit,
+  startInvincibleBlink, triggerRagdoll, cleanupRagdoll, isRagdollActive,
+  triggerShoutFling, isFlinging,
   otherPlayers,
   addOtherPlayer,
   removeOtherPlayer,
@@ -17,8 +20,10 @@ import {
 } from "../player/PlayerModel";
 import { syncNameSprite } from "../player/NameSprite";
 import { controls, setIsDead } from "../systems/input";
-import { velocity } from "../systems/physics";
+import { velocity, applyKnockback } from "../systems/physics";
 import { createVisualBullet } from "../systems/shooting";
+import { explodeGrenade, spawnRemoteGrenade, cleanupRemoteGrenades } from "../systems/grenade";
+import { spawnShoutAura } from "../systems/abilities";
 import {
   explodeGrenade,
   spawnRemoteGrenade,
@@ -108,8 +113,8 @@ export function setupSocketEvents() {
       const mesh = otherPlayers[id];
       if (!mesh) continue;
       const p = players[id];
-      // Don't touch visibility or transforms while ragdoll is active
-      if (isRagdollActive(id)) {
+      // Don't touch visibility or transforms while ragdoll or fling is active
+      if (isRagdollActive(id) || isFlinging(id)) {
         if (allStats[id]) allStats[id].name = p.name;
         continue;
       }
@@ -243,6 +248,29 @@ export function setupSocketEvents() {
     },
   );
 
+  socket.on("shout_blast", (data: { victimId: string; origin: { x: number; y: number; z: number } }) => {
+    // Determine victim world position: local player → camera, remote → mesh
+    const originVec = new THREE.Vector3(data.origin.x, data.origin.y, data.origin.z);
+    let targetPos: THREE.Vector3 | undefined;
+    if (data.victimId === myId) {
+      targetPos = camera.position.clone();
+    } else {
+      const mesh = otherPlayers[data.victimId];
+      if (mesh) targetPos = mesh.position.clone();
+    }
+    if (targetPos) spawnShoutAura(originVec, targetPos);
+
+    if (data.victimId !== myId) {
+      triggerShoutFling(data.victimId, data.origin);
+    }
+  });
+
+  socket.on("shout_knockback", (data: { force: { x: number; y: number; z: number } }) => {
+    applyKnockback(new THREE.Vector3(data.force.x, data.force.y, data.force.z));
+  });
+
+  socket.on("chat_message", (data: { name: string; message: string; id: string }) => {
+    addMessage(data.name, data.message, false);
   socket.on("weapon_switch", (data: { id: string; weaponId: string }) => {
     if (data.id !== myId) {
       swapOtherPlayerWeapon(data.id, data.weaponId as "ar" | "awp");

@@ -3,6 +3,7 @@ import "./style.css";
 // Initialize scene and map (side effects: adds objects to scene)
 import { scene, renderer } from "./scene/setup";
 import "./scene/map";
+import { initAbilityItems } from "./systems/abilities";
 
 // Initialize UI (side effects: appends DOM elements)
 import "./ui/hud";
@@ -114,6 +115,9 @@ controls.addEventListener("lock", () => {
 
 // Socket events
 setupSocketEvents();
+
+// Spawn ability items on map
+initAbilityItems();
 
 // Start game loop
 animate();

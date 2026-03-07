@@ -6,6 +6,22 @@ import { camera } from "../scene/setup";
 export const velocity = new THREE.Vector3();
 const moveDir = new THREE.Vector3();
 
+// World-space impulse applied directly to camera.position (bypasses camera rotation)
+const _worldImpulse = new THREE.Vector3();
+const KNOCKBACK_FRICTION = 1.8; // must match FLING_FRICTION in PlayerModel.ts
+
+/** Apply a world-space knockback (XYZ in metres/s). Safe to call from any system. */
+export function applyKnockback(force: THREE.Vector3): void {
+  // Vertical component goes straight into velocity so the standard
+  // ground-check / gravity path handles it correctly.
+  velocity.y += force.y;
+  isOnGround = false;
+
+  // Horizontal component is world-space (camera-rotation-independent)
+  _worldImpulse.x += force.x;
+  _worldImpulse.z += force.z;
+}
+
 export let moveForward = false;
 export let moveBackward = false;
 export let moveLeft = false;
@@ -82,6 +98,16 @@ export function updatePhysics(
 
   controls.moveRight(-velocity.x * delta);
   controls.moveForward(-velocity.z * delta);
+
+  // World-space impulse (knockback) — applied directly, decays with low friction
+  if (_worldImpulse.lengthSq() > 0.0001) {
+    camera.position.x += _worldImpulse.x * delta;
+    camera.position.z += _worldImpulse.z * delta;
+    _worldImpulse.x -= _worldImpulse.x * KNOCKBACK_FRICTION * delta;
+    _worldImpulse.z -= _worldImpulse.z * KNOCKBACK_FRICTION * delta;
+    if (_worldImpulse.lengthSq() < 0.01) _worldImpulse.set(0, 0, 0);
+  }
+
   for (const box of mapBlocks) resolveBoxCollision(camera.position, box);
   camera.position.x = Math.max(-49, Math.min(49, camera.position.x));
   camera.position.z = Math.max(-49, Math.min(49, camera.position.z));

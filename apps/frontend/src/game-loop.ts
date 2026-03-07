@@ -8,6 +8,8 @@ import { updateBullets, updateAmmo } from "./systems/shooting";
 import { updateGrenade } from "./systems/grenade";
 import { updateMinimap } from "./ui/minimap";
 import { getMyId } from "./network/events";
+import { updateRagdolls, updateFlings } from "./player/PlayerModel";
+import { updateAbilityItems } from "./systems/abilities";
 import {
   updateRagdolls,
   updateFloatingDamageNumbers,
@@ -53,6 +55,8 @@ export function animate() {
   updateAmmo(delta);
   updateGrenade(delta);
   updateRagdolls(delta);
+  updateFlings(delta);
+  updateAbilityItems(delta);
   updatePlayerAnimations(delta);
   updateFloatingDamageNumbers(delta);
 

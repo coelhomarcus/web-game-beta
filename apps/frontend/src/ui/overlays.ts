@@ -41,7 +41,7 @@ export function startLocalInvincibleBlink(duration: number) {
   invincibleTimeout = setTimeout(() => stopLocalInvincibleBlink(), duration);
 }
 
-function stopLocalInvincibleBlink() {
+export function stopLocalInvincibleBlink() {
   if (invincibleInterval) { clearInterval(invincibleInterval); invincibleInterval = null; }
   if (invincibleTimeout) { clearTimeout(invincibleTimeout); invincibleTimeout = null; }
   invincibleOverlay.style.display = "none";

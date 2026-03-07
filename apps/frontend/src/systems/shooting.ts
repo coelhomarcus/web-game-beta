@@ -5,7 +5,7 @@ import { mapBlocks } from "../scene/map";
 import { otherPlayers } from "../player/PlayerModel";
 import { socket } from "../network/socket";
 import { playShootSound, playAwpSound, playReloadSound } from "./audio";
-import { showHitMarker } from "../ui/overlays";
+import { showHitMarker, stopLocalInvincibleBlink } from "../ui/overlays";
 import { updateHudAmmo, updateHudWeapon, startReloadRing, stopReloadRing } from "../ui/hud";
 import { showScope, hideScope } from "../ui/overlays";
 
@@ -191,6 +191,10 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
   }
   const w = getCurrentWeapon();
   if (fireCooldown > 0) return; // Bolt-action / fire rate limiter
+
+  // Cancel invincibility the moment the player shoots
+  stopLocalInvincibleBlink();
+  socket.emit("end_invincible");
 
   // Consume ammo & set cooldown
   ammo--;

@@ -5,18 +5,18 @@ const hud = document.createElement("div");
 hud.id = "hud";
 hud.innerHTML = `
   <div id="hud-left">
-    <div id="hud-hp">
-      <div id="hud-hp-bar-bg"><div id="hud-hp-bar"></div></div>
-      <div id="hud-hp-bottom">
-        <span id="hud-hp-value">100</span>
-        <span id="hud-hp-label">HP</span>
-      </div>
-    </div>
     <div id="hud-abilities">
       <div id="hud-grenade">
         <span id="hud-grenade-icon">💣</span>
         <span id="hud-grenade-label">Q</span>
         <div id="hud-grenade-cd"></div>
+      </div>
+    </div>
+    <div id="hud-hp">
+      <div id="hud-hp-bar-bg"><div id="hud-hp-bar"></div></div>
+      <div id="hud-hp-bottom">
+        <span id="hud-hp-value">100</span>
+        <span id="hud-hp-label">HP</span>
       </div>
     </div>
   </div>

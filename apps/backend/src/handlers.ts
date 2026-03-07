@@ -12,6 +12,9 @@ const damageLog: Record<string, Record<string, number>> = {};
 // last weapon used per attacker
 const lastWeapon: Record<string, string> = {};
 
+// invincibility timers, so they can be cancelled on shoot
+const invincibleTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+
 export function getPlayers(): Record<string, PlayerState> {
     return players;
 }
@@ -24,9 +27,10 @@ function scheduleRespawn(io: Server, id: string) {
             players[id].isInvincible = true;
             players[id].position = getRandomSpawn();
             io.emit('player_respawned', players[id]);
-            setTimeout(() => {
+            invincibleTimers[id] = setTimeout(() => {
                 if (players[id]) {
                     players[id].isInvincible = false;
+                    delete invincibleTimers[id];
                 }
             }, INVINCIBLE_TIME);
         }
@@ -51,7 +55,14 @@ function killPlayer(io: Server, victimId: string, killerId: string, cause: 'bull
     }
     delete damageLog[victimId];
 
-    io.emit('player_killed', { victim: victimId, killer: killerId, assist: assistId, weapon });
+    io.emit('player_killed', {
+        victim: victimId,
+        killer: killerId,
+        assist: assistId,
+        weapon,
+        cause,
+        explosionPos: cause === 'grenade' ? explosionPos : undefined,
+    });
     scheduleRespawn(io, victimId);
 }
 

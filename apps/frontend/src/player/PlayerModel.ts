@@ -255,18 +255,18 @@ export function triggerRagdoll(
     // Launch AWAY from explosion with force
     const dx = grp.position.x - explosionPos.x;
     const dz = grp.position.z - explosionPos.z;
-    const dist = Math.max(0.5, Math.sqrt(dx * dx + dz * dz));
+    const dist = Math.max(0.3, Math.sqrt(dx * dx + dz * dz));
     const nx = dx / dist;
     const nz = dz / dist;
-    const force = 10 + Math.random() * 6;
+    const force = 16 + Math.random() * 10;   // strong horizontal blast
     velX = nx * force;
     velZ = nz * force;
-    velY = 8 + Math.random() * 5;
-    angSpeed = 10 + Math.random() * 6;
+    velY = 12 + Math.random() * 8;            // high arc
+    angSpeed = 18 + Math.random() * 10;       // fast spin
     // Extra crazy limb spin for grenade
     for (const l of limbs) {
-      l.angVelX *= 2.5;
-      l.angVelZ *= 2.5;
+      l.angVelX *= 4;
+      l.angVelZ *= 4;
     }
   } else {
     // Bullet: moderate topple

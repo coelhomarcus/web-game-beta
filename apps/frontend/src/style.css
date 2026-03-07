@@ -590,8 +590,12 @@ body.scoped #crosshair {
 }
 
 @keyframes reload-fill {
-  from { stroke-dashoffset: 150.8; }
-  to   { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: 150.8;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /* Low ammo — yellow pulse */
@@ -756,7 +760,7 @@ body.scoped #crosshair {
 /* ── Kill feed ── CS:GO style ─────────────────────────────────────────────── */
 #kill-feed {
   position: fixed;
-  top: 192px;
+  top: 16px;
   right: 16px;
   display: flex;
   flex-direction: column;
@@ -910,6 +914,102 @@ body.scoped #crosshair {
   color: #fff;
   outline: none;
   transition: border-color 0.15s;
+}
+
+/* ── Settings overlay (ESC menu) ──────────────────────────────────────────── */
+#settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+}
+#settings-overlay.active {
+  display: flex;
+}
+
+.settings-card {
+  background: #1a1a2e;
+  border: 2px solid #333;
+  border-radius: 16px;
+  padding: 32px 40px;
+  min-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.settings-title {
+  font-family: "Nunito", sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  text-align: center;
+  letter-spacing: 1.5px;
+}
+
+.settings-label {
+  font-family: "Nunito", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b0bec5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-row input[type="range"] {
+  flex: 1;
+  accent-color: #00b4d8;
+  height: 6px;
+  cursor: pointer;
+}
+
+.settings-val {
+  font-family: "Rajdhani", monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: #00e5ff;
+  min-width: 40px;
+  text-align: right;
+}
+
+.settings-btn {
+  margin-top: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: "Nunito", sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #fff;
+  background: #00c853;
+  border-bottom: 3px solid #00952e;
+  transition:
+    transform 0.1s,
+    filter 0.1s;
+}
+.settings-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+.settings-btn:active {
+  transform: translateY(1px);
+  border-bottom-width: 1px;
 }
 
 #chat-input::placeholder {

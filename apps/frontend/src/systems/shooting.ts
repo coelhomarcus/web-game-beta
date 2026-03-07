@@ -43,7 +43,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     magSize: 5,
     reloadTime: 3.2,
     fireRate: 1.1, // bolt-action delay
-    damage: 100,   // one-hit kill
+    damage: 60,
     bulletColor: 0x00ffff,
     bulletSpeed: 120,
     bulletMaxLife: 3.0,
@@ -183,6 +183,18 @@ function findPlayerGroup(o: THREE.Object3D): THREE.Group | null {
   return null;
 }
 
+/** Returns true if the hit mesh belongs to the headGroup hierarchy. */
+function isHeadHit(hitObject: THREE.Object3D): boolean {
+  let cur: THREE.Object3D | null = hitObject;
+  while (cur) {
+    if (cur.name === "headGroup") return true;
+    // Stop once we reach the player root group
+    if (cur instanceof THREE.Group && Object.values(otherPlayers).includes(cur)) break;
+    cur = cur.parent;
+  }
+  return false;
+}
+
 export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
   if (!controls.isLocked || isDead) return;
   if (isReloading || ammo <= 0) {
@@ -221,8 +233,10 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
       const grp = findPlayerGroup(firstPlayerHit.object)!;
       const tid = Object.keys(otherPlayers).find((id) => otherPlayers[id] === grp);
       if (tid) {
-        socket.emit("hit_player", { targetId: tid, damage: w.damage, weaponId: w.id });
-        showHitMarker();
+        const headshot = isHeadHit(firstPlayerHit.object);
+        const dmg = headshot ? w.damage * 2 : w.damage;
+        socket.emit("hit_player", { targetId: tid, damage: dmg, weaponId: w.id, headshot });
+        showHitMarker(headshot);
       }
     }
   }

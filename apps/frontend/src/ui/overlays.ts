@@ -4,10 +4,14 @@ hitMarker.id = "hit-marker";
 document.body.appendChild(hitMarker);
 let hitTimeout: ReturnType<typeof setTimeout> | null = null;
 
-export function showHitMarker() {
+export function showHitMarker(headshot = false) {
+  hitMarker.classList.remove("headshot");
   hitMarker.classList.add("active");
+  if (headshot) hitMarker.classList.add("headshot");
   if (hitTimeout) clearTimeout(hitTimeout);
-  hitTimeout = setTimeout(() => hitMarker.classList.remove("active"), 120);
+  hitTimeout = setTimeout(() => {
+    hitMarker.classList.remove("active", "headshot");
+  }, headshot ? 200 : 120);
 }
 
 // Damage overlay

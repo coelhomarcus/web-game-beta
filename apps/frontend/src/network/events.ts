@@ -12,7 +12,7 @@ import { controls, setIsDead } from "../systems/input";
 import { velocity } from "../systems/physics";
 import { createVisualBullet } from "../systems/shooting";
 import { explodeGrenade, spawnRemoteGrenade, cleanupRemoteGrenades } from "../systems/grenade";
-import { updateHudHp, hudKillsVal } from "../ui/hud";
+import { updateHudHp } from "../ui/hud";
 import { allStats, setMyIdRef } from "../ui/scoreboard";
 import { flashDamage, showKillFeedEntry, startLocalInvincibleBlink } from "../ui/overlays";
 import { addMessage } from "../ui/chat";
@@ -113,7 +113,7 @@ export function setupSocketEvents() {
     const victimName = allStats[data.victim]?.name ?? "Desconhecido";
     const assistName = data.assist ? (allStats[data.assist]?.name ?? undefined) : undefined;
 
-    showKillFeedEntry(killerName, victimName, data.killer === myId, assistName);
+    showKillFeedEntry(killerName, victimName, data.killer === myId, data.weapon ?? 'ar', assistName);
 
     if (data.victim === myId) {
       setIsDead(true);

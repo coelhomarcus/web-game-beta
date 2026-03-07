@@ -6,7 +6,7 @@ import { otherPlayers } from "../player/PlayerModel";
 import { socket } from "../network/socket";
 import { playShootSound, playAwpSound, playReloadSound } from "./audio";
 import { showHitMarker } from "../ui/overlays";
-import { updateHudAmmo, updateHudWeapon } from "../ui/hud";
+import { updateHudAmmo, updateHudWeapon, startReloadRing, stopReloadRing } from "../ui/hud";
 import { showScope, hideScope } from "../ui/overlays";
 
 // ─── Weapon definitions ───────────────────────────────────────────────────────
@@ -123,6 +123,7 @@ export function startReload() {
   reloadTimer = w.reloadTime;
   if (isScoped) exitScope();
   playReloadSound();
+  startReloadRing(w.reloadTime);
   updateHudAmmo(ammo, true);
 }
 
@@ -133,6 +134,7 @@ export function updateAmmo(delta: number) {
   if (reloadTimer <= 0) {
     isReloading = false;
     ammo = getCurrentWeapon().magSize;
+    stopReloadRing();
     updateHudAmmo(ammo, false);
   }
 }
@@ -215,7 +217,7 @@ export function handleShoot(isDead: boolean, controls: { isLocked: boolean }) {
       const grp = findPlayerGroup(firstPlayerHit.object)!;
       const tid = Object.keys(otherPlayers).find((id) => otherPlayers[id] === grp);
       if (tid) {
-        socket.emit("hit_player", { targetId: tid, damage: w.damage });
+        socket.emit("hit_player", { targetId: tid, damage: w.damage, weaponId: w.id });
         showHitMarker();
       }
     }

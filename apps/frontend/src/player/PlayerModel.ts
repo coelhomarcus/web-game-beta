@@ -1,6 +1,81 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { scene } from "../scene/setup";
 import { syncNameSprite } from "./NameSprite";
+
+// ─── Weapon transform configs (tweak these to adjust models) ─────────────────
+// Each has: scale [x,y,z], rotation [x,y,z] (radians), position [x,y,z]
+
+export const M4A1_FP = {
+  scale: [2, 2, 2] as [number, number, number],
+  rotation: [0, Math.PI, 0] as [number, number, number],
+  position: [0.3, -0.75, -0.5] as [number, number, number], // group position in camera space
+};
+
+export const M4A1_3P = {
+  scale: [2, 2, 2] as [number, number, number],
+  rotation: [0, Math.PI, 0] as [number, number, number],
+  position: [0.08, -0.2, -0.42] as [number, number, number], // position on other-player model
+};
+
+export const AWP_FP = {
+  scale: [0.1, 0.1, 0.1] as [number, number, number],
+  rotation: [0, 1.5, 0] as [number, number, number],
+  position: [0.3, -0.32, -0.5] as [number, number, number],
+};
+
+export const AWP_3P = {
+  scale: [0.1, 0.1, 0.1] as [number, number, number],
+  rotation: [0, 1.5, 0] as [number, number, number],
+  position: [0.08, 0.1, -0.42] as [number, number, number],
+};
+
+// ─── Pre-loaded M4A1 GLB model ───────────────────────────────────────────────
+let m4a1Template: THREE.Group | null = null;
+const m4a1Loader = new GLTFLoader();
+m4a1Loader.load("/models/M4A1/PSX_Old_FN_FAL.glb", (gltf) => {
+  m4a1Template = gltf.scene;
+  m4a1Template.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+  refreshAll3PWeapons();
+  window.dispatchEvent(new Event("weapon-model-loaded"));
+});
+
+// ─── Pre-loaded AWP/Sniper GLB model ─────────────────────────────────────────
+let awpTemplate: THREE.Group | null = null;
+m4a1Loader.load("/models/SNIPER/low-poly_m24_sniper_rifle.glb", (gltf) => {
+  awpTemplate = gltf.scene;
+  awpTemplate.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+  refreshAll3PWeapons();
+  window.dispatchEvent(new Event("weapon-model-loaded"));
+});
+
+/** Refresh all 3P weapons on existing players (replaces fallback with GLB). */
+function refreshAll3PWeapons() {
+  for (const id of Object.keys(otherPlayers)) {
+    const grp = otherPlayers[id];
+    const old = grp.getObjectByName("weapon3p");
+    if (!old) continue;
+    // Determine current weapon type from userData, default to "ar"
+    const weaponId = (old.userData.weaponId as "ar" | "awp") || "ar";
+    grp.remove(old);
+    const wep = weaponId === "awp" ? makeAwpModel(false) : makeWeapon(false);
+    const cfg3p = weaponId === "awp" ? AWP_3P : M4A1_3P;
+    wep.name = "weapon3p";
+    wep.userData.weaponId = weaponId;
+    wep.position.set(...cfg3p.position);
+    grp.add(wep);
+  }
+}
 
 export const otherPlayers: Record<string, THREE.Group> = {};
 export const playerOriginalMaterial: Record<
@@ -129,77 +204,63 @@ export function makeFirstPersonArms(
 
 export function makeWeapon(firstPerson: boolean): THREE.Group {
   const g = new THREE.Group();
-  const m = (c: number, r = 0.5) =>
-    new THREE.MeshStandardMaterial({ color: c, roughness: r });
-  const barrel = new THREE.Mesh(
-    new THREE.BoxGeometry(0.1, 0.1, 0.6),
-    m(0x333333),
-  );
-  barrel.position.set(0, 0, -0.2);
-  g.add(barrel);
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.15, 0.15, 0.4),
-    m(0x555555, 0.8),
-  );
-  body.position.set(0, -0.05, 0.1);
-  g.add(body);
-  const grip = new THREE.Mesh(
-    new THREE.BoxGeometry(0.1, 0.2, 0.1),
-    m(0x222222, 0.9),
-  );
-  grip.position.set(0, -0.2, 0.2);
-  grip.rotation.x = -Math.PI / 8;
-  g.add(grip);
-  if (firstPerson) g.position.set(0.3, -0.3, -0.5);
+  const cfg = firstPerson ? M4A1_FP : M4A1_3P;
+
+  if (m4a1Template) {
+    const model = m4a1Template.clone();
+    model.scale.set(...cfg.scale);
+    model.rotation.set(...cfg.rotation);
+    g.add(model);
+  } else {
+    // Fallback while GLB is still loading
+    const m = (c: number, r = 0.5) =>
+      new THREE.MeshStandardMaterial({ color: c, roughness: r });
+    const barrel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.1, 0.6),
+      m(0x333333),
+    );
+    barrel.position.set(0, 0, -0.2);
+    g.add(barrel);
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, 0.15, 0.4),
+      m(0x555555, 0.8),
+    );
+    body.position.set(0, -0.05, 0.1);
+    g.add(body);
+  }
+
+  if (firstPerson) g.position.set(...M4A1_FP.position);
   return g;
 }
 
 export function makeAwpModel(firstPerson: boolean): THREE.Group {
   const g = new THREE.Group();
-  const m = (c: number, r = 0.5) =>
-    new THREE.MeshStandardMaterial({ color: c, roughness: r });
-  // Long barrel
-  const barrel = new THREE.Mesh(
-    new THREE.BoxGeometry(0.07, 0.07, 1.1),
-    m(0x222222),
-  );
-  barrel.position.set(0, 0.02, -0.35);
-  g.add(barrel);
-  // Scope body
-  const scope = new THREE.Mesh(
-    new THREE.BoxGeometry(0.1, 0.1, 0.3),
-    m(0x111111, 0.9),
-  );
-  scope.position.set(0, 0.1, -0.1);
-  g.add(scope);
-  // Scope lens (cyan tint)
-  const lens = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.045, 0.045, 0.05, 12),
-    new THREE.MeshStandardMaterial({
-      color: 0x00ffff,
-      roughness: 0.1,
-      metalness: 0.5,
-    }),
-  );
-  lens.rotation.x = Math.PI / 2;
-  lens.position.set(0, 0.1, -0.26);
-  g.add(lens);
-  // Stock / body
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.13, 0.14, 0.5),
-    m(0x8b5a2b, 0.9),
-  );
-  body.position.set(0, -0.03, 0.2);
-  g.add(body);
-  // Grip
-  const grip = new THREE.Mesh(
-    new THREE.BoxGeometry(0.09, 0.22, 0.09),
-    m(0x222222, 0.9),
-  );
-  grip.position.set(0, -0.18, 0.1);
-  grip.rotation.x = -Math.PI / 10;
-  g.add(grip);
-  if (firstPerson) g.position.set(0.3, -0.32, -0.5);
+  const cfg = firstPerson ? AWP_FP : AWP_3P;
+
+  if (awpTemplate) {
+    const model = awpTemplate.clone();
+    model.scale.set(...cfg.scale);
+    model.rotation.set(...cfg.rotation);
+    g.add(model);
+  } else {
+    // Fallback while GLB is still loading
+    const m = (c: number, r = 0.5) =>
+      new THREE.MeshStandardMaterial({ color: c, roughness: r });
+    const barrel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.07, 0.07, 1.1),
+      m(0x222222),
+    );
+    barrel.position.set(0, 0.02, -0.35);
+    g.add(barrel);
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.13, 0.14, 0.5),
+      m(0x8b5a2b, 0.9),
+    );
+    body.position.set(0, -0.03, 0.2);
+    g.add(body);
+  }
+
+  if (firstPerson) g.position.set(...AWP_FP.position);
   return g;
 }
 
@@ -265,7 +326,8 @@ export function addOtherPlayer(player: {
   // ── Weapon (attached to torso group, aligned with hands) ───────────────
   const wep3p = makeWeapon(false);
   wep3p.name = "weapon3p";
-  wep3p.position.set(0.08, 0.1, -0.42);
+  wep3p.userData.weaponId = "ar";
+  wep3p.position.set(...M4A1_3P.position);
   grp.add(wep3p);
 
   // ── Legs ───────────────────────────────────────────────────────────────
@@ -290,8 +352,10 @@ export function swapOtherPlayerWeapon(
   const old = grp.getObjectByName("weapon3p");
   if (old) grp.remove(old);
   const wep = weaponId === "awp" ? makeAwpModel(false) : makeWeapon(false);
+  const cfg3p = weaponId === "awp" ? AWP_3P : M4A1_3P;
   wep.name = "weapon3p";
-  wep.position.set(0.08, 0.1, -0.42);
+  wep.userData.weaponId = weaponId;
+  wep.position.set(...cfg3p.position);
   grp.add(wep);
 }
 
@@ -330,40 +394,46 @@ export function flashPlayerHit(id: string) {
   }, 150);
 }
 
-const blinkingPlayers: Record<string, { interval: number; toggle: boolean }> =
-  {};
+const shieldMeshes: Record<string, THREE.Mesh> = {};
+
+export function isPlayerInvincible(id: string): boolean {
+  return id in shieldMeshes;
+}
 
 export function startInvincibleBlink(id: string, duration: number) {
   stopInvincibleBlink(id);
-  let toggle = false;
-  const interval = setInterval(() => {
-    const orig = playerOriginalMaterial[id];
-    if (!orig) {
-      stopInvincibleBlink(id);
-      return;
-    }
-    toggle = !toggle;
-    // Toggle a blue emissive on the shared material so all body parts blink.
-    orig.emissive.setHex(toggle ? 0x3399ff : 0x000000);
-    orig.emissiveIntensity = toggle ? 0.6 : 0;
-  }, 150);
-  blinkingPlayers[id] = {
-    interval: interval as unknown as number,
-    toggle: false,
-  };
+  const grp = otherPlayers[id];
+  if (!grp) return;
+
+  // Create a blue semi-transparent capsule around the player
+  const capsule = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.55, 1.2, 8, 16),
+    new THREE.MeshStandardMaterial({
+      color: 0x2299ff,
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      emissive: 0x2299ff,
+      emissiveIntensity: 0.4,
+    }),
+  );
+  capsule.name = "invincible-shield";
+  capsule.position.set(0, 0.1, 0);
+  grp.add(capsule);
+  shieldMeshes[id] = capsule;
+
   setTimeout(() => stopInvincibleBlink(id), duration);
 }
 
 function stopInvincibleBlink(id: string) {
-  const entry = blinkingPlayers[id];
-  if (entry != null) {
-    clearInterval(entry.interval);
-    delete blinkingPlayers[id];
-    const orig = playerOriginalMaterial[id];
-    if (orig) {
-      orig.emissive.setHex(0x000000);
-      orig.emissiveIntensity = 0;
-    }
+  const capsule = shieldMeshes[id];
+  if (capsule) {
+    const grp = otherPlayers[id];
+    if (grp) grp.remove(capsule);
+    capsule.geometry.dispose();
+    (capsule.material as THREE.Material).dispose();
+    delete shieldMeshes[id];
   }
 }
 

@@ -8,6 +8,7 @@ import "./scene/map";
 import "./ui/hud";
 import "./ui/overlays";
 import "./ui/chat";
+import "./ui/settings";
 
 // Initialize player systems
 import { camera } from "./scene/setup";
@@ -58,11 +59,23 @@ window.addEventListener("weapon-switched", () => {
   socket.emit("weapon_switch", { weaponId: w.id });
 });
 
+// Refresh FP weapon once a GLB model finishes loading
+window.addEventListener("weapon-model-loaded", () => {
+  const w = getCurrentWeapon();
+  camera.remove(fpWeapon);
+  fpWeapon = w.id === "awp" ? makeAwpModel(true) : makeWeapon(true);
+  camera.add(fpWeapon);
+  setFpWeapon(fpWeapon);
+});
+
 // Hide/show FP weapon (and arms) when scoping with AWP
 window.addEventListener("scope-changed", ((e: CustomEvent) => {
   fpWeapon.visible = !e.detail.scoped;
   fpArms.visible = !e.detail.scoped;
 }) as EventListener);
+
+// ── SKIP_START_SCREEN: set to false to re-enable the name input screen ──
+const SKIP_START_SCREEN = false;
 
 // Start screen
 const nameInput = document.getElementById("name-input") as HTMLInputElement;
@@ -79,10 +92,16 @@ function startGame() {
   lockAndStart();
 }
 
-playBtn.addEventListener("click", startGame);
-nameInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") startGame();
-});
+if (SKIP_START_SCREEN) {
+  // Auto-start: hide screen and enter game immediately
+  setPlayerName("Anonimo");
+  lockAndStart();
+} else {
+  playBtn.addEventListener("click", startGame);
+  nameInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") startGame();
+  });
+}
 
 controls.addEventListener("lock", () => {
   const myId = getMyId();

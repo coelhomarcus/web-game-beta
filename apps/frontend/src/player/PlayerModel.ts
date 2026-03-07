@@ -90,116 +90,49 @@ export const playerCurrentNames: Record<string, string> = {};
  */
 export function makeFirstPersonArms(
   variant: "rifle" | "awp" = "rifle",
+  color: string | number = 0xc68642,
 ): THREE.Group {
-  const g = new THREE.Group();
+  const rig = new THREE.Group();
+
+  const fpCfg = variant === "awp" ? AWP_FP : M4A1_FP;
+  const [wx, wy, wz] = fpCfg.position;
+
   const skin = new THREE.MeshStandardMaterial({
-    color: 0xc68642,
-    roughness: 0.85,
-  });
-  const sleeve = new THREE.MeshStandardMaterial({
-    color: 0x1a1a1a,
-    roughness: 0.9,
+    color,
+    roughness: 0.86,
+    metalness: 0.0,
   });
 
-  // Helper: add a hand box + forearm box in camera-local coordinates
+  // Single Minecraft-style rectangular arm block (4×12×4 proportions)
+  const armGeo = new THREE.BoxGeometry(0.12, 0.48, 0.12);
+
   function addArm(
-    hx: number,
-    hy: number,
-    hz: number, // hand center (camera space)
-    hw: number,
-    hh: number,
-    hd: number, // hand size
-    fx: number,
-    fy: number,
-    fz: number, // forearm center
-    frx: number,
-    fry: number,
-    frz: number, // forearm euler rotation
-  ) {
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(hw, hh, hd), skin);
-    hand.position.set(hx, hy, hz);
-    g.add(hand);
-
-    const forearm = new THREE.Mesh(
-      new THREE.BoxGeometry(0.09, 0.38, 0.09),
-      sleeve,
-    );
-    forearm.position.set(fx, fy, fz);
-    forearm.rotation.set(frx, fry, frz);
-    g.add(forearm);
+    side: "left" | "right",
+    offset: [number, number, number],
+    rot: [number, number, number],
+  ): void {
+    const sign = side === "left" ? -1 : 1;
+    const mesh = new THREE.Mesh(armGeo, skin);
+    mesh.position.set(wx + offset[0] * sign, wy + offset[1], wz + offset[2]);
+    mesh.rotation.set(rot[0], rot[1] * sign, rot[2] * sign);
+    mesh.frustumCulled = false;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    rig.add(mesh);
   }
 
   if (variant === "rifle") {
-    // Weapon group sits at camera pos (0.3, -0.3, -0.5)
-    // Grip in camera space ≈ (0.30, -0.50, -0.30)
-    // Barrel mid support ≈ (0.16, -0.38, -0.72)
-
-    // Right hand — trigger/grip, nearly vertical forearm coming from off-screen below
-    addArm(
-      0.3,
-      -0.51,
-      -0.3,
-      0.14,
-      0.1,
-      0.15,
-      0.34,
-      -0.76,
-      -0.22,
-      -0.15,
-      0.0,
-      -0.1,
-    );
-    // Left hand — barrel support, forearm angled forward
-    addArm(
-      0.16,
-      -0.4,
-      -0.7,
-      0.14,
-      0.09,
-      0.16,
-      0.12,
-      -0.62,
-      -0.56,
-      -0.45,
-      0.0,
-      0.1,
-    );
+    // Right arm: gripping the stock
+    addArm("right", [0.04, 0.28, 0.22], [-0.62, 0.06, -0.05]);
+    // Left arm: supporting the barrel
+    addArm("left",  [0.2,  0.31, -0.1], [-0.88, 0.18,  0.1]);
   } else {
-    // AWP: weapon group at (0.3, -0.32, -0.5), longer barrel so left hand goes further out
-
-    // Right hand — same grip area
-    addArm(
-      0.3,
-      -0.51,
-      -0.3,
-      0.14,
-      0.1,
-      0.15,
-      0.34,
-      -0.76,
-      -0.22,
-      -0.15,
-      0.0,
-      -0.1,
-    );
-    // Left hand — further forward along the long barrel
-    addArm(
-      0.12,
-      -0.4,
-      -0.84,
-      0.14,
-      0.09,
-      0.16,
-      0.09,
-      -0.62,
-      -0.68,
-      -0.55,
-      0.0,
-      0.12,
-    );
+    // AWP — arms shifted to match scope hold
+    addArm("right", [0.04, -0.1, 0.22], [-0.64, 0.06, -0.05]);
+    addArm("left",  [0.26, -0.06, -0.3], [-0.96, 0.24,  0.12]);
   }
 
-  return g;
+  return rig;
 }
 
 export function makeWeapon(firstPerson: boolean): THREE.Group {
@@ -302,7 +235,7 @@ export function addOtherPlayer(player: {
     0.18,
     mat,
     -0.27,
-    0.15,
+    0.20,
     0,
     -0.27,
   );
@@ -313,13 +246,15 @@ export function addOtherPlayer(player: {
     0.18,
     mat,
     0.27,
-    0.15,
+    0.20,
     0,
     -0.27,
   );
-  // rotation.x > 0 tilts the hanging arm toward -Z (forward in model space)
-  leftArm.rotation.x = Math.PI * 0.5; // left hand supports barrel — more horizontal
-  rightArm.rotation.x = Math.PI * 0.43; // right hand grips trigger — slightly lower
+  // Arms angled forward-down to align hands with weapon grip
+  leftArm.rotation.x = ARM_HOLD_LEFT;
+  leftArm.rotation.z = 0.15;  // lean inward toward weapon center
+  rightArm.rotation.x = ARM_HOLD_RIGHT;
+  rightArm.rotation.z = -0.15; // lean inward toward weapon center
   grp.add(leftArm);
   grp.add(rightArm);
 
@@ -451,8 +386,8 @@ export function removeOtherPlayer(id: string) {
 
 // ─── Third-person walk animation ─────────────────────────────────────────────
 
-const ARM_HOLD_LEFT = Math.PI * 0.5; // base rotation.x for left arm
-const ARM_HOLD_RIGHT = Math.PI * 0.43; // base rotation.x for right arm
+const ARM_HOLD_LEFT = 1.00;  // ~57° forward — left arm supports barrel
+const ARM_HOLD_RIGHT = 0.81; // ~46° forward-down — right hand grips trigger
 const ARM_SWING = 0.22; // arm swing amplitude (radians)
 const LEG_SWING = 0.7; // leg swing amplitude (radians)
 const WALK_SPEED_3P = 12; // oscillations per second

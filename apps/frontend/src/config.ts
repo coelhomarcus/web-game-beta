@@ -21,3 +21,4 @@ export const GRENADE_THROW_UP = 6;
 
 export const MAG_SIZE = 20; // Default (AR) mag size for initial HUD display
 export const INVINCIBLE_TIME = 3000;
+export const MAP_HALF_SIZE = 49;
